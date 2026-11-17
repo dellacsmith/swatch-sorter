@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swatch Sorter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a white label-card bench. Thin rules, bold caps, one black accent, soft tints only to mark season zones. */
+:root {
+  --paper: #ffffff;
+  --ink: #111111;
+  --muted: #666666;
+  --line: #d6d6d6;
+  --soft: #f6f6f5;
+  --ss: #e8f0f7;
+  --yr: #f0efeb;
+  --fw: #f4eae0;
+  --ok: #1c6a44; --ok-bg: #e2f2ea;
+  --warn: #8a5300; --warn-bg: #fff0d2;
+  --hold: #9b2335; --hold-bg: #fbe3e7;
+  --font: 'Jost', 'Futura', 'Avenir Next', 'Century Gothic', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.4; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.caps { text-transform: uppercase; letter-spacing: .08em; }
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 32px; padding: 22px 32px 0; border-bottom: 1px solid var(--ink); }
+.brandline { padding-bottom: 12px; }
+.eyebrow { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.top h1 { font-size: 28px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+.tabs { display: flex; gap: 22px; flex-wrap: wrap; }
+.tab { border: 0; border-bottom: 3px solid transparent; background: none; padding: 10px 2px; cursor: pointer; color: var(--muted); font-weight: 500; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tab:hover { color: var(--ink); }
+
+main { padding: 28px 32px 56px; max-width: 1280px; margin: 0 auto; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 920px) { .grid { grid-template-columns: 1fr; } main, .top { padding-left: 16px; padding-right: 16px; } }
+.panel { border: 1px solid var(--line); padding: 22px; }
+.panel h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 16px; font-weight: 600; }
+
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.wide { grid-column: 1 / -1; }
+.field label { font-size: 11.5px; font-weight: 600; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+.field input, .field select { border: 0; border-bottom: 1px solid var(--ink); background: var(--soft); padding: 11px 12px; width: 100%; border-radius: 0; }
+.field input#comp { font-size: 20px; font-weight: 500; letter-spacing: .02em; }
+.field input:focus, .field select:focus { background: #fff; box-shadow: inset 0 0 0 1px var(--ink); outline: none; }
+@media (max-width: 520px) { .fields { grid-template-columns: 1fr; } }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.parsed { min-height: 26px; margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.chip { font-size: 13px; border: 1px solid var(--line); padding: 2px 9px; background: var(--paper); color: var(--ink); font-weight: 500; letter-spacing: .02em; }
+.chip.code { border-color: var(--ink); }
+.chip.bad { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+
+.btn { border: 1px solid var(--ink); background: var(--paper); padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; border-radius: 0; }
+.btn:hover { background: var(--ink); color: var(--paper); }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover { background: #333; }
+.btn.small { padding: 6px 11px; font-size: 11.5px; }
+.btn.ghost { border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--ink); background: var(--paper); color: var(--ink); }
+kbd { font-family: inherit; font-size: 10px; border: 1px solid currentColor; padding: 0 4px; opacity: .7; letter-spacing: .04em; }
+
+#flow { margin-top: 20px; }
+.idle { border: 1px dashed var(--line); padding: 18px; color: var(--muted); }
+.idle strong { color: var(--ink); font-weight: 600; }
+.idle .examples { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.question { border: 1px solid var(--ink); padding: 20px; }
+.question h3 { font-size: 22px; margin-bottom: 4px; letter-spacing: .01em; }
+.question .hint { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
+.options { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.option { text-align: left; border: 1px solid var(--line); background: var(--paper); padding: 11px 12px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; border-radius: 0; }
+.option:hover { border-color: var(--ink); background: var(--soft); }
+.option .num { font-size: 11px; color: var(--muted); border: 1px solid var(--line); min-width: 20px; text-align: center; padding: 1px 0; margin-top: 2px; font-weight: 600; }
+.option .lbl { font-weight: 600; display: block; }
+.option .sub { font-size: 13px; color: var(--muted); display: block; }
+.qnav { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.trail { margin-bottom: 8px; font-size: 11.5px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+
+/* Result card, laid out like a swatch header card */
+.result { border: 1px solid var(--ink); background: var(--paper); }
+.result .top-band { padding: 14px 18px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.result .mid { padding: 26px 18px 28px; text-align: center; }
+.result .mid .kicker { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.result .box-name { font-weight: 700; font-size: 34px; line-height: 1.1; letter-spacing: .03em; text-transform: uppercase; text-wrap: balance; }
+.zone-ss { background: var(--ss); } .zone-yr { background: var(--yr); } .zone-fw { background: var(--fw); } .zone-none { background: var(--soft); }
+.result .lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; padding: 18px; border-top: 1px solid var(--ink); }
+@media (max-width: 560px) { .result .lower { grid-template-columns: 1fr; } }
+.stack .line1 { font-weight: 700; text-transform: uppercase; letter-spacing: .02em; font-size: 17px; }
+.stack .line { text-transform: uppercase; letter-spacing: .02em; font-size: 15px; overflow-wrap: anywhere; }
+.stack .line.dim { color: var(--muted); }
+.notes { border: 1px solid var(--ink); padding: 8px 10px 4px; min-height: 120px; }
+.notes .lbl { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.notes .txt { font-size: 14.5px; line-height: 24px; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 23px, var(--ink) 23px, var(--ink) 24px); background-position: 0 0; padding-bottom: 2px; }
+.notes .txt p { margin: 0; }
+.result .actions { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border: 1px solid currentColor; letter-spacing: .1em; text-transform: uppercase; }
+.pill.sure { color: var(--ok); background: var(--ok-bg); }
+.pill.check { color: var(--warn); background: var(--warn-bg); }
+.pill.hold { color: var(--hold); background: var(--hold-bg); }
+.pill.neutral { color: var(--ink); background: var(--paper); border-color: var(--ink); }
+.banner { padding: 9px 12px; font-size: 14.5px; }
+.banner.match { background: var(--ok-bg); color: var(--ok); }
+.banner.diff { background: var(--warn-bg); color: var(--warn); }
+
+.logbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.logbar h2 { margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--ink); }
+.seg button { border: 0; background: none; padding: 5px 11px; cursor: pointer; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.empty { color: var(--muted); border: 1px dashed var(--line); padding: 16px; }
+.group { border-top: 1px solid var(--line); padding: 12px 0; }
+.group:first-child { border-top: 0; padding-top: 0; }
+.group h3 { font-size: 15px; display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; text-transform: uppercase; letter-spacing: .04em; }
+.group .loc { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .06em; }
+.group .count { margin-left: auto; font-weight: 700; }
+.items { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.items li { display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+.items .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; text-transform: uppercase; letter-spacing: .02em; font-size: 13.5px; }
+.x { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1; }
+.x:hover { color: var(--hold); }
+.flag { font-size: 10.5px; font-weight: 600; padding: 0 6px; letter-spacing: .08em; text-transform: uppercase; }
+.flag.check { color: var(--warn); background: var(--warn-bg); } .flag.hold { color: var(--hold); background: var(--hold-bg); }
+textarea.copybox { width: 100%; height: 140px; margin-top: 8px; font: inherit; font-size: 13px; background: var(--soft); border: 1px solid var(--line); padding: 8px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; margin-bottom: 18px; }
+.toolbar input { border: 0; border-bottom: 1px solid var(--ink); background: var(--soft); padding: 10px 12px; min-width: min(340px, 100%); border-radius: 0; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
+.swatch { display: inline-flex; align-items: center; gap: 6px; }
+.swatch i { width: 14px; height: 14px; border: 1px solid var(--ink); display: inline-block; }
+.units { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 20px; }
+.unit { border: 1px solid var(--ink); padding: 16px; }
+.unit h3 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 12px; }
+.slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.slot { border: 1px solid var(--line); padding: 8px; min-height: 70px; display: flex; flex-direction: column; gap: 2px; }
+.slot.ss { background: var(--ss); } .slot.yr { background: var(--yr); } .slot.fw { background: var(--fw); }
+.slot.spare { border-style: dashed; background: none; color: var(--muted); }
+.slot .n { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+.slot .nm { font-weight: 600; font-size: 13.5px; line-height: 1.2; text-transform: uppercase; letter-spacing: .02em; }
+.slot .ft { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.slot.dim { opacity: .25; }
+.tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--ink); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; background: var(--soft); }
+tr:last-child td { border-bottom: 0; }
+td.code { font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
+td .bx { display: inline-block; margin: 0 6px 4px 0; padding: 1px 8px; border: 1px solid var(--line); font-size: 13.5px; }
+.bx.ss { background: var(--ss); } .bx.yr { background: var(--yr); } .bx.fw { background: var(--fw); }
+.note { color: var(--muted); font-size: 14px; }
+.amb { color: var(--warn); font-weight: 500; }
+
+.famintro { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; }
+.famgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.famcard { border: 1px solid var(--line); display: flex; flex-direction: column; }
+.famcard:hover { border-color: var(--ink); }
+.famcard .option { border: 0; flex: 1; width: 100%; background: transparent; }
+.famcard .option:hover { background: var(--soft); }
+.famcard .lbl { font-size: 16px; }
+.famcard .feel { display: block; font-size: 13.5px; margin-top: 2px; }
+.famcard dl { margin: 8px 0 0; font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.famcard dt { display: inline; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; }
+.famcard dd { display: inline; margin: 0 0 0 4px; }
+.famcard .photos { border-top: 1px solid var(--line); padding: 7px 12px; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--ink); text-decoration: none; }
+.famcard .photos:hover { background: var(--ink); color: var(--paper); }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: no-preference) { .option, .btn { transition: background .12s, color .12s, border-color .12s; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandline">
+    <div class="eyebrow">Wovens library</div>
+    <h1>Swatch Sorter</h1>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-sort" aria-selected="true" data-view="sort">Sort</button>
+    <button class="tab" role="tab" id="tab-boxes" aria-selected="false" data-view="boxes">Boxes and shelves</button>
+    <button class="tab" role="tab" id="tab-db" aria-selected="false" data-view="db">Fabric database</button>
+    <button class="tab" role="tab" id="tab-codes" aria-selected="false" data-view="codes">Fiber codes</button>
+  </nav>
+</header>
+<main>
+  <section id="view-sort" aria-labelledby="tab-sort">
+    <div class="grid">
+      <div class="panel">
+        <h2>Which box does this swatch go in?</h2>
+        <div class="fields">
+          <div class="field wide">
+            <label for="comp">Composition (full names or codes, like HE-55 OC-45)</label>
+            <input id="comp" type="text" autocomplete="off" spellcheck="false" placeholder="97% cotton, 3% elastane">
+          </div>
+          <div class="field">
+            <label for="title">Title or name (optional)</label>
+            <input id="title" type="text" autocomplete="off" placeholder="poplin, crepe de chine, eyelet">
+          </div>
+          <div class="field">
+            <label for="weight">Weight (optional, gsm or oz)</label>
+            <input id="weight" type="text" autocomplete="off" placeholder="268 gsm">
+          </div>
+          <div class="field wide">
+            <label for="guess">My guess (optional)</label>
+            <select id="guess"></select>
+          </div>
+        </div>
+        <div class="parsed" id="parsed" aria-live="polite"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn primary" id="go">Find box <kbd>Enter</kbd></button>
+          <button class="btn ghost" id="clear">Clear <kbd>Esc</kbd></button>
+        </div>
+        <div id="flow" aria-live="polite"></div>
+      </div>
+      <aside class="panel" aria-label="This session">
+        <div class="logbar">
+          <h2 id="log-title">This session</h2>
+          <div class="seg" role="group" aria-label="Log view">
+            <button id="lv-pick" aria-pressed="true">Pick list</button>
+            <button id="lv-order" aria-pressed="false">In order</button>
+          </div>
+        </div>
+        <div id="log"></div>
+        <div class="row" style="margin-top:16px">
+          <button class="btn small" id="copy">Copy pick list</button>
+          <button class="btn small ghost" id="reset-log">Clear session</button>
+        </div>
+        <div id="copyarea"></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-boxes" hidden aria-labelledby="tab-boxes">
+    <div class="toolbar">
+      <input id="box-search" type="search" placeholder="Search boxes, for example linen" aria-label="Search boxes">
+      <div class="legend">
+        <span class="swatch"><i style="background:var(--ss)"></i>Spring / Summer</span>
+        <span class="swatch"><i style="background:var(--yr)"></i>Year-round</span>
+        <span class="swatch"><i style="background:var(--fw)"></i>Fall / Winter</span>
+      </div>
+    </div>
+    <p class="note" style="margin-top:-6px">Read each unit top to bottom, left box then right box. Soft is tops. Hard is bottoms and jackets.</p>
+    <div class="units" id="units"></div>
+  </section>
+
+  <section id="view-db" hidden aria-labelledby="tab-db">
+    <div class="toolbar">
+      <input id="db-search" type="search" placeholder="Search a fabric name, for example crepe" aria-label="Search fabrics">
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Fabric</th><th>Box</th><th>Depends on</th></tr></thead>
+      <tbody id="db-body"></tbody>
+    </table></div>
+  </section>
+
+  <section id="view-codes" hidden aria-labelledby="tab-codes">
+    <div class="toolbar">
+      <input id="code-search" type="search" placeholder="Type a code, for example HE" aria-label="Search fiber codes">
+    </div>
+    <p class="note" style="margin-top:-6px">You can type these codes straight into the Composition box. Mills do not all use the same codes, so the tool flags the ambiguous ones.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Code</th><th>Fiber</th><th>Notes</th></tr></thead>
+      <tbody id="code-body"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script>
+(function (root) {
+'use strict';
+
+/* ---------- Boxes ---------- */
+function b(id, name, tag, fits) { return { id: id, name: name, tag: tag, fits: fits }; }
+var BOXES = [
+  b('eyelet1', 'Eyelet', 'Soft', 'Eyelet and broderie anglaise. Fill this box first.'),
+  b('eyelet2', 'Eyelet #2', 'Soft', 'Eyelet overflow when the first box is full.'),
+  b('lacetrim', 'Lace Trim', 'Soft', 'Narrow lace trim, edging and galloon.'),
+  b('stretchlace', 'Stretch Lace', 'Soft', 'Lace with elastane or visible stretch.'),
+  b('lace', 'Lace', 'Soft', 'Standard non-stretch lace yardage.'),
+  b('corded', 'Corded / Antique Woven Lace', 'Soft', 'Corded lace, Alencon, antique woven lace, cluny, guipure.'),
+  b('novlace', 'Novelty Lace', 'Soft', 'Mesh, tulle, net, sequin lace and other specialty lace.'),
+  b('plainshirt', 'Plain Shirting', 'Soft', 'Shirting with no texture. Any fiber content.'),
+  b('textcotton', 'Textured Shirting (100% cotton)', 'Soft', 'Textured or embroidered shirting that is 100% cotton only.'),
+  b('textblend', 'Textured / Embroidered Shirting (blends)', 'Soft', 'Textured or embroidered shirting that is not 100% cotton.'),
+  b('puckered', 'Novelty: Puckered / Smocked', 'Soft', 'Puckered, smocked, shirred, plisse, crepon.'),
+  b('lwlinen', 'Lightweight Linen', 'Soft', '100% linen at light weight.'),
+  b('linenblend', 'Linens (blends)', 'Soft', 'Linen blends at any weight, and light fabrics with 50% or more linen that are not pure linen.'),
+  b('mhlinen', 'Mid-Heavyweight Linen', 'Hard', 'Linen (50% or more) at mid to heavy weight.'),
+  b('georgette', 'Georgette / Chiffon', 'Soft', 'Georgette and chiffon, silk or viscose.'),
+  b('lwsatin', 'Lightweight Satins', 'Soft', 'Light satins and charmeuse, including light satin jacquard.'),
+  b('crepe', 'Drapey Synthetics: Matte Crepe', 'Soft', 'Soft, fluid, matte polyester or nylon such as crepe.'),
+  b('crisp', 'Drapey Synthetics: Crisp', 'Soft', 'Crisp or papery synthetics such as poplin, taffeta, ripstop, technical.'),
+  b('challis', 'Viscose / Tencel Challis & Twill', 'Soft', 'Matte viscose, rayon, Tencel, modal and cupro. Challis and soft twills.'),
+  b('clipdot', 'Clip Dot / Lurex / Lame / Burnout', 'Soft', 'Clip dot, lurex, lame, burnout, devore, fil coupe.'),
+  b('mhsatin', 'Mid-Heavy Satins + Jacquard', 'Soft', 'Mid to heavy satins, duchess, satin jacquard.'),
+  b('cdc', 'Silk / Viscose CDC Twills', 'Soft', 'Silk or viscose crepe de chine and silky twills.'),
+  b('organza', 'Organza / Dupioni', 'Soft', 'Organza, dupioni, shantung, silk taffeta.'),
+  b('novtex', 'Novelty: Textured / Dobby / Jacquard', 'Soft', 'Light novelty with texture. Dobby, non-satin jacquard, crinkle, fil coupe.'),
+  b('novemb', 'Novelty: Embroidered / Embellished', 'Soft', 'Light novelty with embroidery, beading or sequins.'),
+  b('novspec', 'Novelty: Specialty', 'Soft', 'Light novelty with special finishes. Coated, foil, bonded, printed.'),
+  b('mhnov', 'Mid-Heavy Novelty', 'Soft', 'Mid to heavy novelty. Boucle, tweed, cloque, matelasse, brocade.'),
+  b('plaids', 'Plaids', 'Hard', 'Plaids, checks, gingham, tartan, windowpane, houndstooth.'),
+  b('stripes', 'Stripes', 'Hard', 'Stripes, pinstripe, ticking.'),
+  b('bottoms', 'Midweight Casual Bottoms', 'Hard', 'Cotton twill, chino, drill, cargo, moleskin and similar bottomweights.'),
+  b('tail1', 'Tailoring 1 (light)', 'Hard', 'Light tailoring. Tropical and summer suiting.'),
+  b('tail2', 'Tailoring 2 (mid)', 'Hard', 'Mid tailoring. Year-round suiting.'),
+  b('tail3', 'Tailoring 3 (heavy)', 'Hard', 'Heavy tailoring. Winter suiting and flannel.'),
+  b('hvcotton', 'Heavy Cotton Outerwear', 'Hard', 'Canvas, duck, chore cloth, waxed cotton.'),
+  b('coating', 'Coating', 'Hard', 'Melton, boiled wool, felt, double-face coating.'),
+  b('cordvelvet', 'Corduroy / Velvet', 'Hard', 'Corduroy, velvet, velveteen.'),
+  b('piles', 'Piles', 'Hard', 'Terry, fleece, chenille, faux fur, teddy, sherpa.'),
+  b('shearling', 'Shearling', 'Hard', 'Shearling and faux shearling.'),
+  b('leather', 'Leather', 'Hard', 'Real leather with a smooth finish.'),
+  b('faux', 'Faux Leather + Faux Suede', 'Hard', 'Man-made leather and suede-look fabrics.'),
+  b('suede', 'Suede', 'Hard', 'Real suede and nubuck.'),
+  b('recycled', 'Recycled Leather', 'Hard', 'Recycled or bonded leather.')
+];
+BOXES.forEach(function (x, i) {
+  x.slot = i < 33 ? i : i + 1; // slot 33 is a spare
+  x.zone = x.slot < 20 ? 'ss' : (x.slot < 34 ? 'yr' : 'fw');
+});
+var BYID = {};
+BOXES.forEach(function (x) { BYID[x.id] = x; });
+var ZONES = { ss: 'Spring / Summer', yr: 'Year-round', fw: 'Fall / Winter' };
+var TOTAL_SLOTS = 50;
+function loc(slot) {
+  var unit = Math.floor(slot / 10) + 1;
+  var row = Math.floor((slot % 10) / 2) + 1;
+  var side = slot % 2 === 0 ? 'Left' : 'Right';
+  return { unit: unit, row: row, side: side, text: 'Unit ' + unit + ' · Row ' + row + ' · ' + side };
+}
+
+/* ---------- Composition parsing ---------- */
+/* ---------- Fiber codes (2 to 4 letter mill codes) ---------- */
+var FIBER_NAMES = { cotton: 'Cotton', linen: 'Linen', hemp: 'Hemp', ramie: 'Ramie', polyester: 'Polyester', nylon: 'Nylon', elastane: 'Elastane', viscose: 'Viscose / Rayon', modal: 'Modal', lyocell: 'Lyocell / Tencel', cupro: 'Cupro', silk: 'Silk', wool: 'Wool', acrylic: 'Acrylic', metallic: 'Metallic', leather: 'Leather', pu: 'Polyurethane', acetate: 'Acetate', other: 'Unrecognized' };
+var ACR = {
+  co: 'cotton', ct: 'cotton', oc: 'cotton', rc: 'cotton', rco: 'cotton', ogc: 'cotton',
+  li: 'linen', ln: 'linen', lin: 'linen',
+  he: 'hemp', ha: 'hemp', hp: 'hemp',
+  cv: 'viscose', vi: 'viscose', vs: 'viscose', ry: 'viscose', ra: 'viscose',
+  md: 'modal', cmd: 'modal', mod: 'modal',
+  cly: 'lyocell', te: 'lyocell', ly: 'lyocell',
+  cu: 'cupro', cup: 'cupro',
+  se: 'silk', sk: 'silk', si: 'silk', sl: 'silk',
+  wo: 'wool', wv: 'wool', cm: 'wool', wa: 'wool', wm: 'wool', wp: 'wool', ws: 'wool',
+  pl: 'polyester', pe: 'polyester', pes: 'polyester', pet: 'polyester', rp: 'polyester', rpet: 'polyester', rpl: 'polyester', rpes: 'polyester',
+  pa: 'nylon', ny: 'nylon', nl: 'nylon', pam: 'nylon', rpa: 'nylon',
+  ea: 'elastane', el: 'elastane', sp: 'elastane', spx: 'elastane', lyc: 'elastane', ela: 'elastane',
+  pu: 'pu', pv: 'pu', pvc: 'pu',
+  pan: 'acrylic', ac: 'acrylic', ca: 'acetate', ace: 'acetate',
+  mf: 'metallic', mt: 'metallic', lu: 'metallic', lur: 'metallic',
+  n: 'nylon', tel: 'lyocell', rcpy: 'nylon'
+};
+var AMB = {
+  ac: 'acrylic or acetate',
+  ra: 'ramie or rayon',
+  te: 'Tencel or polyester (Terylene)',
+  ly: 'Lycra (elastane) or lyocell. 10% or less is read as elastane, more as lyocell',
+  sp: 'spandex, or sometimes a speciality fiber',
+  cm: 'cashmere or modal'
+};
+var CODES = [
+  ['CO', 'Cotton', 'Also CT.'],
+  ['OC', 'Organic cotton', 'Sorted as cotton.'],
+  ['RC', 'Recycled cotton', 'Sorted as cotton.'],
+  ['LI', 'Linen', 'Also LN, LIN.'],
+  ['HE', 'Hemp', 'Also HA. Counted with linen for sorting.'],
+  ['CV', 'Viscose / rayon', 'Also VI, VS, RY.'],
+  ['RA', 'Rayon or ramie', 'Ambiguous. Read as rayon. Check the card.'],
+  ['MD', 'Modal', 'Also CMD.'],
+  ['CLY', 'Lyocell / Tencel', 'ISO code for lyocell. Also TEL.'],
+  ['TE', 'Tencel or polyester', 'Ambiguous. Read as lyocell.'],
+  ['LY', 'Lycra or lyocell', 'Ambiguous. 10% or less is read as elastane, over 10% as lyocell.'],
+  ['CU', 'Cupro', 'Also CUP.'],
+  ['SE', 'Silk', 'Also SK, SI, SL.'],
+  ['WO', 'Wool', 'Also WV (virgin wool).'],
+  ['CM', 'Cashmere or modal', 'Ambiguous. Read as wool.'],
+  ['WA / WM / WP', 'Alpaca / Mohair / Angora', 'All sorted as wool.'],
+  ['PL', 'Polyester', 'Also PE, PES, PET.'],
+  ['RP', 'Recycled polyester', 'Also RPET, RPL, RPES. Sorted as polyester.'],
+  ['PA', 'Polyamide (nylon)', 'Also N, NY, NL, PAM. RPA and RCPY are recycled polyamide.'],
+  ['EA', 'Elastane (spandex)', 'Also EL, SP, SPX, LYC, ELA.'],
+  ['PU', 'Polyurethane', 'Coated or leather-look layer. Also PV, PVC.'],
+  ['PAN', 'Acrylic', 'ISO code for acrylic.'],
+  ['AC', 'Acrylic or acetate', 'Ambiguous. Read as acrylic.'],
+  ['CA', 'Acetate', 'ISO code for acetate.'],
+  ['N', 'Nylon', 'Same as PA, NY.'],
+  ['TEL', 'Tencel (lyocell)', 'Sorted as lyocell.'],
+  ['RCPY', 'Recycled polyamide (nylon)', 'Sorted as nylon.'],
+  ['MF', 'Metallic fiber', 'Also MT, LU, LUR. Lurex.']
+];
+
+function fiberOf(n) {
+  if (/polyurethane|\bpu\b|\bpvc\b|vinyl/.test(n)) return 'pu';
+  if (/polyamide|nylon|\bpa\b/.test(n)) return 'nylon';
+  if (/polyester|\bpoly\b|\bpes\b|\bpet\b/.test(n)) return 'polyester';
+  if (/elastane|spandex|lycra|\bea\b|elastomultiester|stretch/.test(n)) return 'elastane';
+  if (/cotton|\bco\b|\bcot\b/.test(n)) return 'cotton';
+  if (/hemp/.test(n)) return 'hemp';
+  if (/ramie/.test(n)) return 'ramie';
+  if (/linen|flax|\blin\b/.test(n)) return 'linen';
+  if (/viscose|rayon|\bcv\b|\bvis\b|ecovero/.test(n)) return 'viscose';
+  if (/modal/.test(n)) return 'modal';
+  if (/lyocell|tencel/.test(n)) return 'lyocell';
+  if (/cupro|bemberg/.test(n)) return 'cupro';
+  if (/silk|\bsi\b/.test(n)) return 'silk';
+  if (/wool|merino|cashmere|alpaca|mohair|angora|\bwo\b/.test(n)) return 'wool';
+  if (/acrylic|\bpan\b/.test(n)) return 'acrylic';
+  if (/metal|lurex|\bmf\b|lame/.test(n)) return 'metallic';
+  if (/leather|suede|lamb|cow|calf/.test(n)) return 'leather';
+  if (/acetate/.test(n)) return 'acetate';
+  return 'other';
+}
+
+function parseComp(raw) {
+  var out = { pct: {}, items: [], known: false, total: 0, warn: null, ambig: [] };
+  if (!raw || !/[a-z]/i.test(raw)) return out;
+  var t = String(raw).toLowerCase();
+  t = t.replace(/(lining|lined|contrast|trim|filling|fill|pocketing)[\s\S]*$/, '');
+  t = t.replace(/\b(self|shell|body|main|face|outer|fabric|composition|content)\b\s*:?/g, ' ');
+  t = t.replace(/\d+(?:\.\d+)?\s*(gsm|g\/m2|oz|cm|mm|in)\b/g, ' ');
+  t = t.replace(/([a-z])\s*-\s*(\d)/g, '$1 $2');
+  t = t.replace(/[,;\/+&]|\band\b/g, ' , ');
+  var toks = [];
+  var re = /(\d+(?:\.\d+)?)\s*%?|([a-z][a-z\-]*)|(,)/g, m;
+  while ((m = re.exec(t))) {
+    if (m[1] !== undefined) toks.push({ n: parseFloat(m[1]) });
+    else if (m[2] !== undefined) toks.push({ w: m[2] });
+    else toks.push({ b: 1 });
+  }
+  var firstTok = null;
+  for (var i = 0; i < toks.length; i++) { if (!toks[i].b) { firstTok = toks[i]; break; } }
+  var items = [], curW = [], curN = null;
+  function flush() {
+    if (curN !== null && curW.length) items.push({ n: curN, name: curW.join(' ') });
+    curW = []; curN = null;
+  }
+  if (firstTok && firstTok.n !== undefined) {
+    toks.forEach(function (tk) {
+      if (tk.n !== undefined) { flush(); curN = tk.n; }
+      else if (tk.w !== undefined) curW.push(tk.w);
+      else flush();
+    });
+    flush();
+  } else {
+    toks.forEach(function (tk) {
+      if (tk.w !== undefined) curW.push(tk.w);
+      else if (tk.n !== undefined) { if (curW.length) items.push({ n: tk.n, name: curW.join(' ') }); curW = []; }
+      else curW = [];
+    });
+  }
+  var total = 0;
+  items.forEach(function (it) {
+    var nm = it.name.trim();
+    var code = (/^[a-z]{1,4}$/.test(nm) && ACR[nm]) ? nm : null;
+    var f = code ? ACR[code] : fiberOf(it.name);
+    if (code === 'ly') f = it.n <= 10 ? 'elastane' : 'lyocell';
+    if (code && AMB[code]) out.ambig.push({ code: code.toUpperCase(), as: f, note: AMB[code] });
+    it.code = code;
+    it.fiber = f;
+    out.pct[f] = (out.pct[f] || 0) + it.n;
+    total += it.n;
+    out.items.push(it);
+  });
+  if (!items.length) {
+    // words only, no percentages
+    t.split(/\s*,\s*|\s+/).forEach(function (w) {
+      var f = ACR[w] || fiberOf(w);
+      if (f !== 'other') { out.pct[f] = out.pct[f] || 0; out.items.push({ n: null, name: w, fiber: f }); out.noPct = true; }
+    });
+    out.known = out.items.length > 0;
+    if (out.known) out.pct = {}; // unknown percentages
+    return out;
+  }
+  out.total = total;
+  out.known = true;
+  if (Math.abs(total - 100) > 2) out.warn = 'Percentages add up to ' + Math.round(total) + '%.';
+  return out;
+}
+
+function fiberGroup(C) {
+  if (!C.known || C.noPct) return null;
+  var p = C.pct;
+  function s() { var x = 0; for (var i = 0; i < arguments.length; i++) x += (p[arguments[i]] || 0); return x; }
+  var g = [['syn', s('polyester', 'nylon', 'acrylic', 'acetate')],
+           ['cell', s('viscose', 'modal', 'lyocell', 'cupro')],
+           ['silk', s('silk')], ['cot', s('cotton')], ['wool', s('wool')], ['linen', s('linen')]];
+  g.sort(function (a, c) { return c[1] - a[1]; });
+  return g[0][1] >= 50 ? g[0][0] : 'mixed';
+}
+
+/* ---------- Questions and results ---------- */
+function opt(k, label, hint) { return { k: k, label: label, hint: hint || '' }; }
+var WL = opt('L', 'Light', 'Under about 130 gsm. Airy, floats.');
+var WM = opt('M', 'Mid', 'About 130 to 220 gsm. Shirt or dress weight.');
+var WH = opt('H', 'Heavy', 'Over about 220 gsm. Pant, skirt or jacket weight.');
+
+function Q(id, text, options, fallback, hint) {
+  return { q: { id: id, text: text, options: options, fallback: fallback, hint: hint || '' } };
+}
+function wByGsm(g, l, m) {
+  if (!g) return null;
+  return g <= l ? 'L' : (g <= m ? 'M' : 'H');
+}
+function autoW(S, l, m) {
+  var g = wByGsm(S.gsm, l, m);
+  if (g) S.notes.push('Weight read from ' + Math.round(S.gsm) + ' gsm.');
+  return g;
+}
+function bast(C) { return (C.pct.linen || 0) + (C.pct.hemp || 0) + (C.pct.ramie || 0); }
+function D(S, bin, o) {
+  o = o || {};
+  var conf = o.conf || 'sure';
+  var notes = (S.notes || []).slice();
+  (S.C.ambig || []).forEach(function (x) { notes.push('Code ' + x.code + ' can mean ' + x.note + '. Read as ' + FIBER_NAMES[x.as] + '.'); });
+  if (S.C.ambig && S.C.ambig.length && conf === 'sure') conf = 'check';
+  if (S.unsure && conf === 'sure') conf = 'check';
+  var why = [o.why || ''].concat(notes).join(' ').trim();
+  return { res: { bin: bin, alt: o.alt || null, conf: conf, why: why, actions: o.actions || [] } };
+}
+
+function fam(k, label, feel, ex, edge, img) { var o = opt(k, label, feel); o.ex = ex; o.edge = edge; o.img = img; return o; }
+var FAMS = [
+  fam('lace', 'Lace, mesh or eyelet', 'Openwork with holes, scalloped edges or a net ground.',
+    'Floral lace, corded lace, eyelet, broderie anglaise, tulle, net, sequin mesh, lace trim.',
+    'Embroidery on a solid cloth with no holes is shirting or novelty, not lace. A burnout on a solid ground goes to Sparkle.', 'lace fabric swatch close up'),
+  fam('shirting', 'Cotton or crisp shirting', 'Smooth to lightly textured, matte and crisp. Feels like a shirt.',
+    'Poplin, oxford, voile, lawn, batiste, chambray, dobby, seersucker, gauze, crinkle cotton, embroidered cotton.',
+    'Cotton with a little spandex still counts as shirting. Heavy twill or canvas does not. Choose Trouser or Jacket weight for those.', 'cotton poplin shirting fabric swatch'),
+  fam('linen', 'Linen or linen-look', 'Slubby, uneven yarns, dry hand, wrinkles easily.',
+    'Linen, linen-cotton, linen-viscose, hemp, ramie.',
+    'A linen-look viscose or polyester with no linen in the content is not linen, so choose Light, drapey, matte. Blends near 50% linen are judgment calls.', 'linen fabric swatch close up'),
+  fam('satin', 'Shiny satin face', 'Glossy smooth face with a duller back.',
+    'Charmeuse, duchess satin, satin jacquard, eco matte satin.',
+    'Matte satin still goes here. Cotton sateen belongs with Shirting or Trouser weight.', 'polyester satin fabric swatch'),
+  fam('drapey', 'Light, drapey, matte', 'Falls and moves, soft, with no shine.',
+    'Polyester crepe, moss crepe, viscose challis, Tencel twill, modal, cupro, silky crepe de chine.',
+    'Silky viscose goes to the CDC Twills box. Crisp, papery poly (taffeta, ripstop) is its own box, and the tool asks which.', 'viscose challis fabric swatch'),
+  fam('sheer', 'Sheer or crisp-sheer', 'See-through and light, either soft or stiff.',
+    'Chiffon, georgette, organza, dupioni, shantung, silk taffeta.',
+    'Tulle and net count as mesh lace. Sequins on a sheer base count as Novelty.', 'chiffon organza fabric swatch'),
+  fam('sparkle', 'Sparkle, dots or burnout', 'Metallic thread, cut-out dots or a devore pattern.',
+    'Lurex, lame, clip dot, swiss dot, fil coupe, burnout, devore.',
+    'A printed polka dot is not clip dot. Sort it by the base fabric. Sequins go to Novelty.', 'clip dot lurex fabric swatch'),
+  fam('novelty', 'Textured, embroidered or special surface', 'The surface is the point. Raised, beaded, coated or quilted.',
+    'Dobby, non-satin jacquard, sequins, beading, foil, coated, bonded, quilted, boucle, tweed, cloque.',
+    'Heavier than a shirt goes to Mid-Heavy Novelty. Satin jacquard goes to Satin.', 'jacquard novelty fabric swatch'),
+  fam('pattern', 'Pattern is the point', 'A woven or printed plaid or stripe is the main identifier.',
+    'Plaid, check, gingham, windowpane, houndstooth, madras, stripe, pinstripe, ticking.',
+    'Wool pinstripe suiting is Tailoring. If your team sorts stripes by material, use the button on the result.', 'plaid stripe woven fabric swatch'),
+  fam('bottoms', 'Trouser or suiting weight', 'Holds its shape. Pant, skirt or tailored weight.',
+    'Cotton twill, chino, drill, cargo, moleskin, wool suiting, gabardine, herringbone, hopsack.',
+    'Casual cotton goes to Casual Bottoms. Suiting asks for light, mid or heavy. Canvas could be pants or a jacket, so the tool asks.', 'cotton twill suiting fabric swatch'),
+  fam('outer', 'Jacket or coat weight', 'Thick and sturdy. Made for outerwear.',
+    'Melton, boiled wool, felt, double-face coating, canvas, duck, chore cloth, waxed cotton.',
+    'Wool coating and heavy cotton go to different boxes, and the tool asks which. Quilted and bonded fabrics have no exact box.', 'melton wool coating fabric swatch'),
+  fam('pile', 'Pile, fuzzy, cord or velvet', 'Raised fibers you can brush with your hand.',
+    'Corduroy, velvet, velveteen, terry, fleece, chenille, faux fur, teddy, sherpa, shearling.',
+    'Sherpa can read as Shearling. Velour sits between velvet and pile.', 'corduroy velvet fabric swatch'),
+  fam('leather', 'Leather, suede or leather-look', 'Hide or a coated fabric made to look like it.',
+    'Leather, suede, nubuck, faux leather, PU, vegan leather, microsuede, recycled or bonded leather.',
+    'A label that says 100% leather can still be suede, so the tool asks about the surface.', 'leather suede fabric swatch'),
+  fam('hold', 'Never seen it / not sure', 'Nothing here fits.', '', 'The swatch goes in a hold tray. Show it to a teammate.', '')
+];
+
+var RX = {
+  leather: /leather|suede|pleather|vegan|polyurethane|\bpu\b|\bpvc\b|nubuck|lambskin|calfskin|cowhide|nappa|goatskin/,
+  pile: /shearling|sherpa|faux fur|\bfur\b|terry|fleece|chenille|plush|teddy|minky|\bpile\b|corduroy|\bcord\b|needlecord|velvet|velveteen|velour/,
+  lace: /eyelet|broderie|anglaise|\blace\b|guipure|chantilly|alencon|cluny|tulle|\bnet\b|\bmesh\b/,
+  sparkle: /clip ?dot|cut ?dot|swiss dot|dotted swiss|fil coup|lurex|lam[eé]\b|burnout|burn-out|devor[eé]|metallic/,
+  sequin: /sequin|beaded|beading|paillette/,
+  outer: /coating|melton|boiled wool|felted|double[- ]face|cashmere/,
+  cdc: /crepe de chine|\bcdc\b|habotai|silk twill|viscose twill|silk crepe/,
+  satin: /\bsatin\b|charmeuse|duchess|mikado/,
+  sheer: /georgette|chiffon|organza|dupioni|dupion|shantung|taffeta/,
+  puckered: /smock|pucker|shirred|cloqu|plisse|crepon/,
+  linen: /linen|flax/,
+  pattern: /plaid|tartan|gingham|windowpane|houndstooth|madras|buffalo|check(?:ed)?\b|stripe|pinstripe|ticking/,
+  tailor: /suiting|worsted|herringbone|serge|tropical|hopsack|sharkskin|trouser/,
+  jacket: /jacket|outerwear|\bcoat\b|chore|work ?jacket|barn|waxed|\bduck\b/,
+  bottoms: /canvas|twill|chino|drill|cargo|ripstop|moleskin|sateen|gabardine|utility|bottomweight|bottom weight|denim/,
+  shirting: /poplin|oxford|broadcloth|voile|lawn|batiste|chambray|dobby|seersucker|gauze|shirting|crinkle|slub|waffle|pique|embroider/,
+  novelty: /jacquard|brocade|damask|matelass|quilt|boucle|tweed|novelty|foil|coated|bonded|laminated|texture/,
+  drapey: /crepe|challis|tencel|lyocell|modal|cupro|viscose|rayon|ripstop|nylon/
+};
+
+function detectFam(S) {
+  var T = S.T, C = S.C, a = S.a;
+  var grp = fiberGroup(C);
+  var p = C.pct;
+  if (RX.leather.test(T) || (p.pu || 0) >= 50 || (p.leather || 0) > 0) return 'leather';
+  if (RX.pile.test(T)) return 'pile';
+  if (RX.lace.test(T)) return 'lace';
+  if (RX.sparkle.test(T) || (p.metallic || 0) > 0) return 'sparkle';
+  if (RX.sequin.test(T)) return 'novelty';
+  if (RX.outer.test(T)) return 'outer';
+  if (RX.cdc.test(T)) return 'cdc';
+  if (RX.satin.test(T)) return 'satin';
+  if (RX.sheer.test(T)) return 'sheer';
+  if (RX.puckered.test(T)) return 'puckered';
+  if (RX.linen.test(T) || bast(C) > 0) return 'linen';
+  if (!a.nopattern && RX.pattern.test(T) && !RX.tailor.test(T)) return 'pattern';
+  if (RX.tailor.test(T) || (p.wool || 0) >= 30) return 'bottoms';
+  if (RX.jacket.test(T)) return 'outer';
+  if (/twill|gabardine/.test(T) && (grp === 'cell' || grp === 'silk') && !/canvas|chino|drill|cargo/.test(T)) return 'drapey';
+  if (/ripstop/.test(T) && grp === 'syn') return 'drapey';
+  if (RX.bottoms.test(T)) return 'bottoms';
+  if (RX.shirting.test(T)) return 'shirting';
+  if (RX.novelty.test(T)) return 'novelty';
+  if (RX.drapey.test(T)) return 'drapey';
+  return null;
+}
+
+var H = {};
+
+H.leather = function (S) {
+  var T = S.T, C = S.C, a = S.a, p = C.pct;
+  if (/recycled|bonded|reconstitut|regenerated/.test(T)) return D(S, 'recycled', { why: 'Recycled or bonded leather has its own box.' });
+  var faux = /faux|vegan|pleather|polyurethane|\bpu\b|\bpvc\b|vinyl|synthetic|micro ?suede|ultrasuede|suedette|leather[- ]?look/.test(T) ||
+    (p.pu || 0) >= 50 || (C.known && ((p.polyester || 0) + (p.nylon || 0)) >= 50 && !p.leather);
+  var real = (p.leather || 0) > 0 || /genuine|lambskin|calfskin|cowhide|nappa|goatskin/.test(T);
+  var origin = faux ? 'faux' : real ? 'real' : a.origin;
+  if (!origin) return Q('origin', 'Is it real leather or man-made?', [
+    opt('real', 'Real leather', 'Animal hide'),
+    opt('faux', 'Man-made', 'PU, vegan leather, microsuede, polyester-based'),
+    opt('recycled', 'Recycled or bonded', 'Leather fibers pressed together')], 'faux');
+  if (origin === 'faux') return D(S, 'faux', { why: 'Man-made leather and suede-look fabrics share one box.' });
+  if (origin === 'recycled') return D(S, 'recycled', { why: 'Recycled or bonded leather has its own box.' });
+  var fin = /suede|nubuck/.test(T) ? 'suede' : a.finish;
+  if (!fin) return Q('finish', 'What is the surface?', [
+    opt('smooth', 'Smooth', 'Grain, nappa, patent'),
+    opt('suede', 'Napped and velvety', 'Suede or nubuck')], 'smooth',
+    'Labels often call suede "100% leather", so check the face.');
+  return D(S, fin === 'suede' ? 'suede' : 'leather', { why: fin === 'suede' ? 'Real suede and nubuck.' : 'Real leather with a smooth finish.' });
+};
+
+H.pile = function (S) {
+  var T = S.T, a = S.a;
+  if (/shearling/.test(T)) return D(S, 'shearling', { why: 'Shearling and faux shearling.' });
+  if (/sherpa/.test(T)) return D(S, 'piles', { alt: 'shearling', conf: 'check', why: 'Sherpa is a pile, but it can read as shearling.' });
+  if (/corduroy|\bcord\b|needlecord|velvet|velveteen/.test(T)) return D(S, 'cordvelvet', { why: 'Corduroy and velvet share a box.' });
+  if (/velour/.test(T)) return D(S, 'cordvelvet', { alt: 'piles', conf: 'check', why: 'Velour sits between velvet and pile.' });
+  if (/\bfur\b|terry|fleece|chenille|plush|teddy|minky|\bpile\b/.test(T)) return D(S, 'piles', { why: 'Long, fuzzy or looped piles.' });
+  var k = a.pk;
+  if (!k) return Q('pk', 'What kind of pile?', [
+    opt('cv', 'Short, smooth or ribbed', 'Corduroy, velvet, velveteen'),
+    opt('long', 'Long, fuzzy or looped', 'Fur, terry, fleece, chenille'),
+    opt('shear', 'Shearling look', 'Suede-look face with wool-look back')], 'long');
+  if (k === 'cv') return D(S, 'cordvelvet', { why: 'Short pile goes with corduroy and velvet.' });
+  if (k === 'shear') return D(S, 'shearling', { why: 'Shearling look.' });
+  return D(S, 'piles', { why: 'Long or looped pile.' });
+};
+
+H.lace = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  if (/eyelet|broderie|anglaise/.test(T) || a.lk === 'eyelet')
+    return D(S, 'eyelet1', { alt: 'eyelet2', why: 'Eyelet. Use Eyelet #2 when the first box is full.' });
+  var kind = a.lk;
+  if (!kind) {
+    if (/trim|edging|galloon|narrow/.test(T)) kind = 'trim';
+    else if (/sequin|bead|mesh|tulle|\bnet\b|novelty|glitter|foil/.test(T)) kind = 'novelty';
+    else if (/corded|alencon|antique|woven lace|guipure|cluny|venise/.test(T)) kind = 'corded';
+  }
+  if (!kind) return Q('lk', 'What kind of lace is it?', [
+    opt('eyelet', 'Eyelet', 'Cut-out holes, broderie anglaise'),
+    opt('trim', 'Narrow trim or edging', 'Sold by the inch, scalloped edge'),
+    opt('plain', 'Standard lace yardage', 'Floral or allover lace'),
+    opt('corded', 'Corded or antique woven', 'Raised cord outline, heavier woven look'),
+    opt('novelty', 'Mesh, sequin or specialty', 'Tulle, net, beaded')], 'plain');
+  if (kind === 'trim') return D(S, 'lacetrim', { why: 'Narrow lace trim and edging.' });
+  if (kind === 'novelty') return D(S, 'novlace', { alt: /sequin|bead/.test(T) ? 'novemb' : null, why: 'Mesh, sequin and specialty lace.' });
+  var stretchy = (C.pct.elastane || 0) > 0 || /stretch/.test(T);
+  if (kind === 'corded') return D(S, 'corded', { alt: stretchy ? 'stretchlace' : null, conf: stretchy ? 'check' : 'sure', why: 'Corded and antique woven lace.' });
+  // plain
+  if (stretchy) return D(S, 'stretchlace', { why: 'Lace with elastane or stretch.' });
+  if (C.known && !C.noPct) return D(S, 'lace', { why: 'Standard lace with no elastane in the composition.' });
+  if (!a.st) return Q('st', 'Does it stretch?', [opt('yes', 'Yes', 'Pulls back when stretched'), opt('no', 'No', 'Stays put')], 'no');
+  return a.st === 'yes' ? D(S, 'stretchlace', { why: 'Lace that stretches.' }) : D(S, 'lace', { why: 'Standard non-stretch lace.' });
+};
+
+H.sparkle = function (S) {
+  var T = S.T;
+  if (/foil/.test(T)) return D(S, 'novspec', { alt: 'clipdot', conf: 'check', why: 'Foil is a specialty finish.' });
+  return D(S, 'clipdot', { why: 'Clip dot, lurex, lame and burnout share a box.' });
+};
+
+H.puckered = function (S) {
+  var T = S.T, a = S.a;
+  if (/cloqu|matelass/.test(T) || a.pw === 'H')
+    return D(S, 'mhnov', { alt: 'puckered', conf: 'check', why: 'Cloque and matelasse are heavier puckered novelties.' });
+  return D(S, 'puckered', { why: 'Puckered, smocked, shirred or plisse.',
+    actions: [{ label: 'It is mid-heavy weight', set: { pw: 'H' } }] });
+};
+
+H.novelty = function (S) {
+  var T = S.T, a = S.a;
+  var w = a.nw;
+  if (!w) w = autoW(S, 150, 150);
+  if (!w) {
+    if (/boucle|tweed|quilt|matelass|brocade|tapestry|damask|heavy/.test(T)) w = 'H';
+    else if (/sequin|bead|embroider|foil|coated|bonded|crinkle|dobby|fil coup|jacquard|paillette|laminat|texture/.test(T)) w = 'L';
+  }
+  if (!w) return Q('nw', 'How heavy is it?', [
+    opt('L', 'Light', 'Drapes or floats'), opt('H', 'Mid to heavy', 'Holds its shape')], 'L');
+  if (w === 'H') return D(S, 'mhnov', { why: 'Heavier novelty weaves go in Mid-Heavy Novelty.' });
+  var k = a.nk;
+  if (!k) {
+    if (/sequin|bead|embroider|appliq|paillette/.test(T)) k = 'emb';
+    else if (/foil|coated|bonded|laminat|wax|vinyl|print|\bpvc\b/.test(T)) k = 'spec';
+    else if (/jacquard|dobby|fil coup|crinkle|texture|cloqu|slub/.test(T)) k = 'tex';
+  }
+  if (!k) return Q('nk', 'What is the surface?', [
+    opt('tex', 'Woven texture', 'Dobby, jacquard, crinkle'),
+    opt('emb', 'Embroidered or embellished', 'Embroidery, beads, sequins'),
+    opt('spec', 'Special finish', 'Coated, foil, bonded, printed')], 'tex');
+  var map = { tex: 'novtex', emb: 'novemb', spec: 'novspec' };
+  var why = { tex: 'Light woven texture, dobby or jacquard.', emb: 'Embroidered, beaded or sequined.', spec: 'Coated, foil, bonded or printed.' };
+  var alt = (k === 'emb' && /sequin|paillette/.test(S.T)) ? 'novlace' : null;
+  return D(S, map[k], { alt: alt, conf: alt ? 'check' : 'sure', why: why[k] });
+};
+
+H.pattern = function (S) {
+  var T = S.T, a = S.a;
+  var plaid = /plaid|tartan|gingham|windowpane|houndstooth|madras|buffalo|check(?:ed)?\b/.test(T);
+  var stripe = /stripe|pinstripe|ticking/.test(T);
+  var which = (plaid && !stripe) ? 'plaid' : (stripe && !plaid) ? 'stripe' : a.pt;
+  if (!which) return Q('pt', 'Which pattern is the main one?', [opt('plaid', 'Plaid or check', ''), opt('stripe', 'Stripe', '')], 'plaid');
+  var act = [{ label: 'Sort by material instead', set: { nopattern: true }, reset: true }];
+  if (which === 'plaid') return D(S, 'plaids', { why: 'Plaids and checks go together.', actions: act });
+  return D(S, 'stripes', { why: 'Stripes go together. Your Stripes note asks whether to sort by material.', actions: act });
+};
+
+H.linen = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  var p = (C.known && !C.noPct) ? bast(C) : null;
+  var hemp = C.known && ((C.pct.hemp || 0) + (C.pct.ramie || 0)) > 0;
+  if (hemp) S.notes.push('Hemp and ramie are counted with linen. Confirm your team boxes them together.');
+  if (p === null) {
+    var lp = a.lp;
+    if (!lp) return Q('lp', 'How much of it is linen?', [
+      opt('pure', '100% linen', ''), opt('main', 'Mostly linen', '50% to 99%'), opt('minor', 'Under half', 'Linen is a minor fiber')], 'main');
+    p = lp === 'pure' ? 100 : lp === 'main' ? 70 : 30;
+  }
+  if (p === 0) return D(S, 'linenblend', { conf: 'check', why: 'The title says linen but the composition has none.' });
+  if (p < 50) return D(S, 'linenblend', { why: 'Linen is ' + Math.round(p) + '%, under half, so it goes with the blends.' });
+  var w = a.lw;
+  if (!w) { var gw = autoW(S, 170, 170); if (gw) w = gw; }
+  if (!w) {
+    if (/heavy|bottomweight|canvas|pant|trouser|suiting/.test(T)) w = 'H';
+    else if (/gauze|voile|lawn|sheer|lightweight|light weight/.test(T)) w = 'L';
+  }
+  if (!w) return Q('lw', 'How heavy is it?', [opt('L', 'Light', 'Under about 130 gsm. Airy, floats.'), opt('H', 'Mid to heavy', 'Holds a shape, pant or jacket weight')], 'L',
+    'Add the weight from the card to skip this question.');
+  var border = p < 100 && p <= 58;
+  var bnote = border ? ' Linen is ' + Math.round(p) + '%, only just over half, so this is a borderline blend.' : '';
+  if (w === 'H') {
+    var alt = (S.gsm >= 220 || /twill|canvas/.test(T)) ? 'bottoms' : null;
+    var why = 'Linen-type fibers are the majority at mid to heavy weight.' + bnote + (alt ? ' A heavy twill like this can also live in Midweight Casual Bottoms.' : '');
+    return D(S, 'mhlinen', { alt: alt, conf: (border || hemp || alt) ? 'check' : 'sure', why: why });
+  }
+  return p === 100 ? D(S, 'lwlinen', { conf: hemp ? 'check' : 'sure', why: '100% linen-type fiber at light weight.' })
+                   : D(S, 'linenblend', { why: 'Light linen blends go in Linens.' + bnote, conf: (border || hemp) ? 'check' : 'sure' });
+};
+
+H.satin = function (S) {
+  var T = S.T, a = S.a;
+  var w = a.sw;
+  if (!w) w = autoW(S, 140, 140);
+  if (!w) {
+    if (/duchess|mikado|heavy/.test(T)) w = 'H';
+    else if (/charmeuse|lightweight|light weight/.test(T)) w = 'L';
+  }
+  if (!w) return Q('sw', 'How heavy is the satin?', [opt('L', 'Light', 'Fluid, floats'), opt('H', 'Mid to heavy', 'Holds its shape')], 'L');
+  var jac = /jacquard/.test(T) ? ' Includes satin jacquard.' : '';
+  return w === 'H' ? D(S, 'mhsatin', { why: 'Mid to heavy satin.' + jac }) : D(S, 'lwsatin', { why: 'Light satin.' + jac });
+};
+
+H.cdc = function (S) {
+  var p = S.C.pct, g = fiberGroup(S.C);
+  var off = S.C.known && !S.C.noPct && g !== 'silk' && g !== 'cell';
+  return D(S, 'cdc', { alt: off ? 'crepe' : null, conf: off ? 'check' : 'sure', why: off ? 'Box is for silk or viscose. A polyester crepe de chine may belong in Matte Crepe.' : 'Crepe de chine and silky twills.' });
+};
+
+H.sheer = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  var flowy = /georgette|chiffon/.test(T), crisp = /organza|dupioni|dupion|shantung|taffeta/.test(T);
+  var kind = (flowy && crisp) ? a.sk : flowy ? 'flowy' : crisp ? 'crisp' : a.sk;
+  if (!kind) return Q('sk', 'Which kind of sheer?', [
+    opt('flowy', 'Soft and flowy', 'Chiffon, georgette'), opt('crisp', 'Crisp and stiff', 'Organza, dupioni, taffeta')], 'flowy');
+  var syn = ((C.pct.polyester || 0) + (C.pct.nylon || 0)) >= 50;
+  if (kind === 'flowy') return D(S, 'georgette', {
+    alt: syn ? 'crepe' : null, conf: syn ? 'check' : 'sure',
+    why: syn ? 'The box label says silk or viscose. Polyester georgette may belong in Matte Crepe.' : 'Georgette and chiffon.' });
+  if (/taffeta/.test(T) && syn) return D(S, 'crisp', { alt: 'organza', conf: 'check', why: 'Synthetic taffeta is a crisp synthetic. Silk taffeta goes with Organza.' });
+  return D(S, 'organza', { why: 'Organza, dupioni, shantung and silk taffeta.' });
+};
+
+H.drapey = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  var grp = a.fg || fiberGroup(C);
+  if (!grp || grp === 'mixed' || grp === 'wool' || grp === 'linen') {
+    return Q('fg', 'Which fiber is most of it?', [
+      opt('syn', 'Polyester or nylon', ''), opt('cell', 'Viscose, rayon, modal, lyocell or cupro', ''),
+      opt('silk', 'Silk', ''), opt('cot', 'Cotton', '')], 'syn');
+  }
+  if (grp === 'silk') return D(S, 'cdc', { why: 'Silk drapes go in the silk and viscose box.' });
+  if (grp === 'cot') return H.shirting(S);
+  if (grp === 'cell') {
+    var hd = a.hd || (/challis|tencel|lyocell/.test(T) ? 'matte' : /twill|cdc|silky/.test(T) ? 'silky' : null);
+    if (!hd) return Q('hd', 'How does the face look?', [
+      opt('silky', 'Silky with a slight sheen', 'Crepe de chine or twill hand'),
+      opt('matte', 'Matte and soft', 'Challis or Tencel twill')], 'matte');
+    return hd === 'silky' ? D(S, 'cdc', { alt: 'challis', conf: 'check', why: 'Silky viscose handles like crepe de chine.' })
+                          : D(S, 'challis', { why: 'Matte viscose, Tencel and modal.' });
+  }
+  var sh = a.sh || (S.gsm >= 220 ? 'heavy' : null) || (/crepe/.test(T) ? 'soft' : /poplin|taffeta|ripstop|technical|nylon|paper/.test(T) ? 'crisp' : null);
+  if (!sh) return Q('sh', 'How does it handle?', [
+    opt('soft', 'Soft, fluid, matte', 'Crepe-like'),
+    opt('crisp', 'Crisp or papery', 'Poplin, taffeta, ripstop, technical'),
+    opt('heavy', 'Heavier and structured', 'Suiting-like')], 'soft');
+  if (sh === 'heavy') return H.bottoms(S);
+  return sh === 'crisp' ? D(S, 'crisp', { why: 'Crisp synthetics.' }) : D(S, 'crepe', { why: 'Soft matte synthetics.' });
+};
+
+H.shirting = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  var w = a.shw;
+  if (!w && S.gsm && S.gsm <= 200 && !/jacket|coat|pant|skirt|short|trouser/.test(T)) w = 'shirt';
+  if (!w && /poplin|oxford|broadcloth|voile|lawn|batiste|chambray|dobby|seersucker|gauze|shirting|crinkle|slub|waffle|pique|embroider/.test(T)) w = 'shirt';
+  if (!w) return Q('shw', 'What is it for?', [
+    opt('shirt', 'Tops and dresses', 'Shirt weight'),
+    opt('bottom', 'Pants, skirts, shorts', 'Bottomweight'),
+    opt('jacket', 'Jackets and outerwear', 'Canvas or duck weight')], 'shirt');
+  if (w === 'bottom') return H.bottoms(S);
+  if (w === 'jacket') return H.outer(S);
+  var tx = a.tx;
+  if (!tx) {
+    if (/embroider/.test(T)) tx = 'emb';
+    else if (/dobby|seersucker|gauze|crinkle|slub|waffle|pique|textur|jacquard|clip/.test(T)) tx = 'tex';
+    else if (/poplin|broadcloth|oxford|voile|lawn|batiste|chambray|plain|solid|shirting/.test(T)) tx = 'plain';
+  }
+  if (!tx) return Q('tx', 'Does it have texture?', [
+    opt('plain', 'Plain', 'Flat, smooth weave'),
+    opt('tex', 'Textured', 'Dobby, crinkle, seersucker, gauze, slub'),
+    opt('emb', 'Embroidered', '')], 'plain');
+  if (tx === 'plain') return D(S, 'plainshirt', { why: 'Plain shirting takes any fiber content.' });
+  var pc = (C.known && !C.noPct) ? (C.pct.cotton || 0) : null;
+  if (pc === null && !a.pure) return Q('pure', 'Is it exactly 100% cotton?', [opt('yes', 'Yes, 100% cotton', ''), opt('no', 'No, it has other fibers', 'Including a little spandex')], 'no');
+  var pure = pc !== null ? pc === 100 : a.pure === 'yes';
+  if (pure) return D(S, 'textcotton', { alt: tx === 'emb' ? 'textblend' : null, why: 'Textured or embroidered, 100% cotton only.' });
+  return D(S, 'textblend', { why: 'Textured or embroidered with other fibers, including cotton with spandex.' });
+};
+
+H.bottoms = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  var tail = (RX.tailor.test(T) || (C.pct.wool || 0) >= 30 || (/gabardine/.test(T) && !/cotton/.test(T) && !((C.pct.cotton || 0) >= 50)));
+  var cas = !tail && (/canvas|chino|drill|cargo|ripstop|moleskin|sateen|utility|twill|denim|bottomweight|bottom weight/.test(T) || (C.known && (C.pct.cotton || 0) >= 60));
+  var bk = a.bk || (tail ? 'tail' : cas ? 'cas' : null);
+  if (!bk) return Q('bk', 'Is it casual or tailoring?', [
+    opt('cas', 'Casual bottomweight', 'Twill, chino, canvas, soft hand'),
+    opt('tail', 'Tailoring', 'Suiting, crisp, wool or poly-viscose blends')], 'cas');
+  if (bk === 'cas') {
+    if (/jacket|coat|chore|waxed|barn|outerwear/.test(T) || a.eu === 'jacket') return H.outer(S);
+    if (/canvas|\bduck\b/.test(T) && !a.eu) return Q('eu', 'What is it for?', [
+      opt('bottom', 'Pants, skirts, shorts', ''), opt('jacket', 'Jackets and outerwear', '')], 'bottom');
+    return D(S, 'bottoms', { why: 'Midweight casual bottoms.' });
+  }
+  var tw = a.tw;
+  if (!tw) { var tg = autoW(S, 230, 300); if (tg) tw = tg; }
+  if (!tw) {
+    if (/tropical|lightweight|light weight|summer/.test(T)) tw = 'L';
+    else if (/flannel|heavy|winter|melton/.test(T)) tw = 'H';
+  }
+  if (!tw) return Q('tw', 'How heavy is the suiting?', [
+    opt('L', 'Light', 'Tropical or summer weight'), opt('M', 'Mid', 'Year-round'), opt('H', 'Heavy', 'Winter, flannel')], 'M');
+  return D(S, tw === 'L' ? 'tail1' : tw === 'H' ? 'tail3' : 'tail2', { why: 'Tailoring sorted light, mid and heavy.' });
+};
+
+H.outer = function (S) {
+  var T = S.T, C = S.C, a = S.a;
+  var k = a.ok;
+  if (!k) {
+    if (/coating|melton|boiled|felt|double[- ]face|cashmere|wool coat/.test(T) || (C.pct.wool || 0) >= 50) k = 'coat';
+    else if (/canvas|duck|waxed|chore|work|barn|cotton jacket/.test(T) || (C.pct.cotton || 0) >= 70) k = 'cot';
+    else if (/quilt|bonded|padded|technical|puffer/.test(T)) k = 'spec';
+  }
+  if (!k) return Q('ok', 'What kind of outerwear fabric?', [
+    opt('coat', 'Wool or wool-blend coating', 'Melton, boiled wool, felt'),
+    opt('cot', 'Heavy cotton or canvas', 'Chore, work jacket, waxed'),
+    opt('spec', 'Quilted, bonded or technical', '')], 'coat');
+  if (k === 'coat') return D(S, 'coating', { why: 'Wool and wool-blend coating.' });
+  if (k === 'cot') return D(S, 'hvcotton', { why: 'Heavy cotton outerwear.' });
+  return D(S, 'novspec', { alt: 'mhnov', conf: 'check', why: 'Quilted and bonded fabrics have no exact box. Closest is Novelty: Specialty.' });
+};
+
+
+/* ---------- Guided funnel (used when title and composition do not identify the family) ---------- */
+var SURF = [
+  ['flat', 'Smooth and plain', 'No obvious texture or shine'],
+  ['satin', 'Shiny satin face', 'Glossy front, duller back'],
+  ['sheer', 'Sheer or see-through', 'Chiffon, organza, voile'],
+  ['tex', 'Textured or patterned', 'Weave, plaid, stripe, crinkle'],
+  ['lace', 'Holes, lace or mesh', 'Openwork, eyelet, net'],
+  ['sparkle', 'Sparkle, metallic or dots', 'Lurex, clip dot, burnout'],
+  ['pile', 'Fuzzy, pile, cord or velvet', 'Raised fibers'],
+  ['leather', 'Leather, suede or coated', 'Real or faux'],
+  ['hold', 'Never seen it', 'Set it aside in a hold tray']
+];
+var LIKELY = {
+  syn: ['flat', 'satin', 'sheer', 'tex'],
+  cell: ['flat', 'satin', 'sheer', 'tex'],
+  silk: ['satin', 'sheer', 'flat', 'tex'],
+  cot: ['flat', 'tex', 'lace', 'pile'],
+  wool: ['flat', 'tex', 'pile'],
+  linen: ['flat', 'tex', 'lace'],
+  none: ['flat', 'tex', 'satin', 'sheer']
+};
+var GROUP_LABEL = { syn: 'polyester or nylon', cell: 'viscose, Tencel or similar', silk: 'silk', cot: 'cotton', wool: 'wool', linen: 'linen' };
+
+function surfQ(S, g) {
+  var key = LIKELY[g] ? g : 'none';
+  var likely = LIKELY[key], byk = {}, opts = [];
+  SURF.forEach(function (x) { byk[x[0]] = x; });
+  likely.forEach(function (k) { opts.push(opt(byk[k][0], byk[k][1], byk[k][2])); });
+  SURF.forEach(function (x) { if (likely.indexOf(x[0]) < 0) { var o = opt(x[0], x[1], x[2]); o.more = true; opts.push(o); } });
+  var hint = LIKELY[g] ? 'The most likely choices for ' + GROUP_LABEL[g] + ' come first.' : 'Pick the closest match.';
+  return Q('surf', 'What is the surface like?', opts, 'flat', hint);
+}
+
+function deriveFam(S) {
+  var a = S.a, g = fiberGroup(S.C), C = S.C;
+  if (!a.surf) return surfQ(S, g);
+  var bastish = bast(C) > 0;
+  switch (a.surf) {
+    case 'satin': return { fam: 'satin' };
+    case 'sheer': return { fam: 'sheer' };
+    case 'lace': return { fam: 'lace' };
+    case 'sparkle': return { fam: 'sparkle' };
+    case 'pile': return { fam: 'pile' };
+    case 'leather': return { fam: 'leather' };
+    case 'hold': return { fam: 'hold' };
+    case 'tex': {
+      if (!a.tx2) return Q('tx2', 'What kind of texture or pattern?', [
+        opt('pattern', 'Plaid or stripe', 'Woven or printed'),
+        opt('weave', 'Woven pattern', 'Dobby, jacquard'),
+        opt('slub', 'Slubby, crinkled or gauzy', 'Uneven yarns, seersucker'),
+        opt('emb', 'Embroidered or beaded', 'Sequins too'),
+        opt('pucker', 'Puckered or smocked', 'Shirred, plisse'),
+        opt('heavy', 'Boucle, tweed or quilted', 'Thick, heavy texture'),
+        opt('coated', 'Foil, coated or bonded', 'Special finish')], 'weave');
+      switch (a.tx2) {
+        case 'pattern': return { fam: 'pattern' };
+        case 'weave': a.nk = 'tex'; return { fam: 'novelty' };
+        case 'slub':
+          if (bastish) return { fam: 'linen' };
+          if (g === 'cot') { a.shw = 'shirt'; a.tx = 'tex'; return { fam: 'shirting' }; }
+          a.nk = 'tex'; return { fam: 'novelty' };
+        case 'emb': a.nk = 'emb'; return { fam: 'novelty' };
+        case 'pucker': return { fam: 'puckered' };
+        case 'heavy': a.nw = 'H'; return { fam: 'novelty' };
+        default: a.nk = 'spec'; a.nw = 'L'; return { fam: 'novelty' };
+      }
+    }
+    default: { // flat
+      if (!a.fl) return Q('fl', 'How does it feel in your hand?', [
+        opt('D', 'Light and drapey', 'Falls and flows, soft'),
+        opt('C', 'Light and crisp', 'Holds its shape, shirt-like'),
+        opt('M', 'Midweight', 'Pants, skirts, suiting'),
+        opt('H', 'Heavy', 'Jackets and coats')], 'D', 'Go by feel, not the label.');
+      if (bastish) { a.lw = (a.fl === 'D' || a.fl === 'C') ? 'L' : 'H'; return { fam: 'linen' }; }
+      if (a.fl === 'M') return { fam: 'bottoms' };
+      if (a.fl === 'H') return { fam: 'outer' };
+      if (a.fl === 'D') {
+        if (g === 'silk') return { fam: 'cdc' };
+        if (g === 'cot') { a.shw = 'shirt'; a.tx = 'plain'; return { fam: 'shirting' }; }
+        if (g === 'syn') a.sh = 'soft';
+        return { fam: 'drapey' };
+      }
+      // crisp
+      if (g === 'syn') { a.sh = 'crisp'; return { fam: 'drapey' }; }
+      if (g === 'silk') { a.sk = 'crisp'; return { fam: 'sheer' }; }
+      a.shw = 'shirt'; a.tx = 'plain'; return { fam: 'shirting' };
+    }
+  }
+}
+
+/* ---------- Public routing ---------- */
+function parseGsm(w, t, c) {
+  var m, ws = String(w || '').toLowerCase();
+  if (ws) {
+    m = ws.match(/aw[:\s]*(\d{2,4})/); if (m) return +m[1];
+    m = ws.match(/(\d+(?:\.\d+)?)\s*oz/); if (m) return Math.round(parseFloat(m[1]) * 33.906);
+    m = ws.match(/(\d+(?:\.\d+)?)/); if (m) { var v = parseFloat(m[1]); return v <= 30 ? Math.round(v * 33.906) : v; }
+  }
+  var s = (String(t || '') + ' ' + String(c || '')).toLowerCase();
+  if (/gsm/.test(s)) {
+    m = s.match(/aw[:\s]*(\d{2,4})\s*gsm/) || s.match(/(\d{2,4})\s*gsm/);
+    if (m) return +m[1];
+  }
+  return null;
+}
+
+function makeState(title, compRaw, trail, weightRaw) {
+  var a = {}, unsure = false;
+  (trail || []).forEach(function (t) { a[t.k] = t.v; if (t.u) unsure = true; });
+  var T = (String(title || '') + ' ' + String(compRaw || '')).toLowerCase();
+  return { T: T, C: parseComp(compRaw), a: a, unsure: unsure, title: title, comp: compRaw, gsm: parseGsm(weightRaw, title, compRaw), notes: [] };
+}
+
+function holdGuess(S) {
+  var g = fiberGroup(S.C), out = [];
+  if (g === 'cot') out = ['plainshirt', 'bottoms'];
+  else if (g === 'syn') out = ['crepe', 'crisp'];
+  else if (g === 'cell') out = ['challis', 'cdc'];
+  else if (g === 'silk') out = ['cdc', 'lwsatin'];
+  else if (g === 'wool') out = ['tail2', 'coating'];
+  else if (g === 'linen') out = ['linenblend', 'lwlinen'];
+  return out;
+}
+
+function route(title, compRaw, trail, weightRaw) {
+  var S = makeState(title, compRaw, trail, weightRaw);
+  var fam = S.a.fam;
+  if (!fam && S.a.forceFam) {
+    return Q('fam', 'What does it look and feel like?', FAMS, 'hold', 'Start with how it feels in your hand. Weight and drape matter more than the label. Each choice lists examples and the look-alikes it gets confused with.');
+  }
+  if (!fam) fam = detectFam(S);
+  if (!fam) {
+    var dv = deriveFam(S);
+    if (dv.q) return dv;
+    fam = dv.fam;
+  }
+  if (fam === 'hold') return { res: { bin: null, alt: null, conf: 'hold', why: 'Set it aside in a hold tray. Show it to a teammate, or add the name to the database.', hints: holdGuess(S), actions: [] } };
+  var h = H[fam];
+  var r = h(S);
+  r.S = { fam: fam, comp: S.C };
+  return r;
+}
+
+var api = { FIBER_NAMES: FIBER_NAMES, CODES: CODES, parseGsm: parseGsm, BOXES: BOXES, BYID: BYID, ZONES: ZONES, TOTAL_SLOTS: TOTAL_SLOTS, loc: loc, parseComp: parseComp, route: route, FAMS: FAMS };
+if (typeof module !== 'undefined' && module.exports) module.exports = api;
+else root.SwatchEngine = api;
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+(function () {
+'use strict';
+var E = window.SwatchEngine;
+var BOXES = E.BOXES, BYID = E.BYID, ZONES = E.ZONES, FN = E.FIBER_NAMES;
+
+/* ---------- Fabric database (display) ---------- */
+var DB = [
+  ['Eyelet, broderie anglaise', ['eyelet1', 'eyelet2'], 'Eyelet #2 is overflow'],
+  ['Lace, floral or allover', ['lace', 'stretchlace'], 'Stretch or not'],
+  ['Stretch lace', ['stretchlace'], ''],
+  ['Lace trim, edging, galloon', ['lacetrim'], ''],
+  ['Corded lace, Alencon, cluny, guipure, antique woven lace', ['corded'], ''],
+  ['Tulle, net, mesh', ['novlace'], ''],
+  ['Sequin lace, beaded lace', ['novlace'], ''],
+  ['Sequin or beaded fabric (not lace)', ['novemb', 'novlace'], 'Lace or mesh base'],
+  ['Poplin, broadcloth, oxford, voile, lawn, batiste, chambray', ['plainshirt'], 'Any fiber content'],
+  ['Dobby, crinkle, slub, waffle, piqué, gauze, seersucker', ['textcotton', 'textblend'], '100% cotton or not'],
+  ['Embroidered cotton shirting', ['textcotton', 'textblend'], '100% cotton or not'],
+  ['Smocked, shirred, puckered, plisse, crepon', ['puckered'], ''],
+  ['Cloque, matelasse, quilted woven', ['mhnov'], ''],
+  ['Linen, 100%', ['lwlinen', 'mhlinen'], 'Weight'],
+  ['Linen blends (cotton-linen, viscose-linen)', ['linenblend', 'mhlinen'], 'Linen % and weight'],
+  ['Hemp and hemp blends', ['mhlinen', 'linenblend'], 'Counted with linen. Heavy twills may go to Bottoms'],
+  ['Georgette, chiffon', ['georgette'], 'Polyester may go to Matte Crepe'],
+  ['Organza, dupioni, shantung, silk taffeta', ['organza'], ''],
+  ['Taffeta, polyester', ['crisp'], ''],
+  ['Charmeuse, satin (light)', ['lwsatin'], ''],
+  ['Satin (mid-heavy), duchess, mikado, eco matte satin (heavier)', ['mhsatin'], 'Weight'],
+  ['Satin jacquard', ['lwsatin', 'mhsatin'], 'Weight'],
+  ['Crepe de chine, habotai, silk twill, viscose twill', ['cdc'], ''],
+  ['Polyester crepe, moss crepe', ['crepe'], ''],
+  ['Poly or nylon poplin, ripstop (light), technical', ['crisp'], ''],
+  ['Challis, Tencel or lyocell twill, modal, cupro', ['challis'], 'Silky ones go to CDC Twills'],
+  ['Clip dot, cut dot, swiss dot, fil coupe', ['clipdot'], ''],
+  ['Lurex, metallic, lame, burnout, devore', ['clipdot'], ''],
+  ['Jacquard (not satin), dobby novelty', ['novtex', 'mhnov'], 'Weight'],
+  ['Foil, coated, bonded, laminated, printed novelty', ['novspec'], ''],
+  ['Boucle, tweed, brocade, damask, tapestry', ['mhnov'], ''],
+  ['Plaid, check, gingham, tartan, windowpane, houndstooth', ['plaids'], 'Or by material'],
+  ['Stripe, pinstripe, ticking', ['stripes'], 'Or by material'],
+  ['Suiting, worsted, herringbone, hopsack, wool gabardine', ['tail1', 'tail2', 'tail3'], 'Weight'],
+  ['Wool flannel', ['tail3'], ''],
+  ['Cotton twill, chino, drill, cargo, moleskin, cotton sateen', ['bottoms'], ''],
+  ['Canvas, duck, chore cloth, waxed cotton', ['hvcotton', 'bottoms'], 'Jacket or pants'],
+  ['Melton, boiled wool, felt, double-face, coating', ['coating'], ''],
+  ['Corduroy, velvet, velveteen', ['cordvelvet'], ''],
+  ['Terry, fleece, chenille, faux fur, teddy, sherpa', ['piles'], 'Sherpa can read as Shearling'],
+  ['Shearling, faux shearling', ['shearling'], ''],
+  ['Leather, lambskin, calfskin, nappa', ['leather'], 'Smooth finish'],
+  ['Suede, nubuck (real)', ['suede'], ''],
+  ['Faux leather, PU, vegan leather, pleather', ['faux'], ''],
+  ['Faux suede, microsuede', ['faux'], ''],
+  ['Recycled or bonded leather', ['recycled'], '']
+];
+
+/* ---------- State ---------- */
+var view = 'sort', active = false, trail = [], log = [], logView = 'pick', cur = null;
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+try { var saved = JSON.parse(localStorage.getItem('swatch-log') || '[]'); if (Array.isArray(saved)) log = saved; } catch (e) { log = []; }
+function persist() { try { localStorage.setItem('swatch-log', JSON.stringify(log)); } catch (e) { /* storage unavailable */ } }
+function boxChip(id) { var b = BYID[id]; return '<span class="bx ' + b.zone + '">' + esc(b.name) + '</span>'; }
+function locText(id) { return E.loc(BYID[id].slot).text; }
+
+(function buildGuess() {
+  var h = '<option value="">No guess</option>';
+  var ordered = BOXES.slice().sort(function (a, b) { return a.slot - b.slot; });
+  [1, 2, 3, 4, 5].forEach(function (u) {
+    var inUnit = ordered.filter(function (b) { return E.loc(b.slot).unit === u; });
+    if (!inUnit.length) return;
+    h += '<optgroup label="Unit ' + u + '">';
+    inUnit.forEach(function (b) { h += '<option value="' + b.id + '">' + esc(b.name) + '</option>'; });
+    h += '</optgroup>';
+  });
+  $('guess').innerHTML = h;
+})();
+
+/* ---------- Parsed readout ---------- */
+function renderParsed() {
+  var c = $('comp').value.trim();
+  var g = E.parseGsm($('weight').value, $('title').value, c);
+  var h = '';
+  if (c) {
+    var C = E.parseComp(c);
+    if (!C.known) h += '<span class="chip bad">No fibers recognized</span>';
+    else {
+      h += '<span>Read as</span>';
+      C.items.forEach(function (it) {
+        h += '<span class="chip' + (it.fiber === 'other' ? ' bad' : (it.code ? ' code' : '')) + '">' + (it.n != null ? esc(it.n) + '% ' : '') + esc(FN[it.fiber]) + (it.code ? ' (' + esc(it.code.toUpperCase()) + ')' : '') + (it.fiber === 'other' ? ' (' + esc(it.name) + ')' : '') + '</span>';
+      });
+      if (C.warn) h += '<span class="chip bad">' + esc(C.warn) + '</span>';
+      C.ambig.forEach(function (a) { h += '<span class="chip bad">' + esc(a.code) + ' is ambiguous</span>'; });
+    }
+  }
+  if (g) h += '<span class="chip">' + Math.round(g) + ' gsm</span>';
+  $('parsed').innerHTML = h;
+}
+
+/* ---------- Flow ---------- */
+var EXAMPLES = [
+  ['', 'LI-52 CO-48', '268 gsm'], ['', 'HE-55 OC-45', '375 gsm'], ['poplin', '100% cotton', ''], ['dobby', '98% cotton, 2% elastane', ''], ['lace', '90% nylon, 10% elastane', ''], ['', '100% leather', ''], ['eco matte satin', '60% polyester, 40% recycled poly', '']
+];
+function renderFlow() {
+  var el = $('flow');
+  if (!active) {
+    cur = null;
+    var h = '<div class="idle"><strong>Type a composition, a name, or both, then press Enter.</strong><br>Familiar fabrics resolve at once. If something is unclear, you get a short question instead of a guess. Mill codes like HE and OC work too.';
+    h += '<div class="examples" aria-label="Example swatches"><span class="note">Examples to try</span>';
+    EXAMPLES.forEach(function (x, i) { h += '<button class="btn small ghost" data-ex="' + i + '">' + esc((x[0] ? x[0] + ' / ' : '') + x[1]) + '</button>'; });
+    h += '</div></div>';
+    el.innerHTML = h;
+    return;
+  }
+  cur = E.route($('title').value, $('comp').value, trail, $('weight').value);
+  if (cur.q) renderQuestion(el, cur.q); else renderResult(el, cur.res);
+}
+function renderFamily(el, q) {
+  var h = '<div class="question"><h3>' + esc(q.text) + '</h3><p class="famintro">' + esc(q.hint) + '</p><div class="famgrid">';
+  q.options.forEach(function (o, i) {
+    h += '<div class="famcard"><button class="option" data-opt="' + esc(o.k) + '"><span class="num">' + (i < 9 ? i + 1 : '') + '</span><span><span class="lbl">' + esc(o.label) + '</span><span class="sub feel">' + esc(o.hint) + '</span>';
+    if (o.ex || o.edge) {
+      h += '<dl>';
+      if (o.ex) h += '<div><dt>Examples</dt><dd>' + esc(o.ex) + '</dd></div>';
+      if (o.edge) h += '<div><dt>Watch for</dt><dd>' + esc(o.edge) + '</dd></div>';
+      h += '</dl>';
+    }
+    h += '</span></button>';
+    if (o.img) h += '<a class="photos" href="https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(o.img) + '" target="_blank" rel="noopener">See photos (opens a new tab)</a>';
+    h += '</div>';
+  });
+  h += '</div><div class="qnav">';
+  if (trail.length) h += '<button class="btn small ghost" id="back">Back <kbd>Backspace</kbd></button>';
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+var moreOpen = false;
+function visOpts(q) { return q.options.filter(function (o) { return !o.more || moreOpen; }); }
+function renderQuestion(el, q) {
+  if (q.id === 'fam') { renderFamily(el, q); return; }
+  var h = '<div class="question">';
+  var n = trail.filter(function (t) { return t.k !== 'forceFam' && t.k !== 'nopattern'; }).length;
+  if (n) h += '<div class="trail">' + n + ' answered</div>';
+  h += '<h3>' + esc(q.text) + '</h3>';
+  h += '<p class="hint">' + esc(q.hint || (q.options.some(function (o) { return o.k === 'L'; }) ? 'Rough guide only. Go by feel.' : 'Pick the closest match.')) + '</p>';
+  var vis = visOpts(q), hidden = q.options.length - vis.length;
+  h += '<div class="options">';
+  vis.forEach(function (o, i) {
+    h += '<button class="option" data-opt="' + esc(o.k) + '"><span class="num">' + (i < 9 ? i + 1 : '') + '</span><span><span class="lbl">' + esc(o.label) + '</span>' + (o.hint ? '<span class="sub">' + esc(o.hint) + '</span>' : '') + '</span></button>';
+  });
+  h += '</div><div class="qnav">';
+  if (hidden > 0) h += '<button class="btn small" id="more">None of these? Show ' + hidden + ' more</button>';
+  h += '<button class="btn small ghost" id="unsure">Not sure <kbd>0</kbd></button>';
+  if (trail.length) h += '<button class="btn small ghost" id="back">Back <kbd>Backspace</kbd></button>';
+  if (q.id === 'surf') h += '<button class="btn small ghost" id="fulllist">Full list with photos</button>';
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+function renderResult(el, r) {
+  var guess = $('guess').value;
+  var b = r.bin ? BYID[r.bin] : null;
+  var comp = $('comp').value.trim(), title = $('title').value.trim();
+  var g = E.parseGsm($('weight').value, title, comp);
+  var h = '<div class="result">';
+  h += '<div class="zone-' + (b ? b.zone : 'none') + '"><div class="top-band"><span class="pill ' + r.conf + '">' + (r.conf === 'sure' ? 'Confident' : r.conf === 'hold' ? 'Hold tray' : 'Double-check') + '</span>';
+  if (b) h += '<span class="pill neutral">' + esc(ZONES[b.zone]) + '</span><span class="pill neutral">' + esc(b.tag) + ' wovens</span>';
+  h += '</div><div class="mid"><div class="kicker">' + (b ? 'Put it in' : 'No box yet') + '</div><div class="box-name">' + esc(b ? b.name : 'Set it aside') + '</div></div></div>';
+  h += '<div class="lower"><div class="stack">';
+  h += '<div class="line1">' + esc(b ? E.loc(b.slot).text : 'Hold tray') + '</div>';
+  if (comp) h += '<div class="line">' + esc(comp) + '</div>';
+  if (title) h += '<div class="line dim">' + esc(title) + '</div>';
+  if (g) h += '<div class="line dim">' + Math.round(g) + ' gsm</div>';
+  h += '</div><div class="notes"><div class="lbl">Notes:</div><div class="txt">';
+  if (r.why) h += '<p>' + esc(r.why) + '</p>';
+  if (r.alt) h += '<p>Could also be ' + esc(BYID[r.alt].name) + ' (' + esc(locText(r.alt)) + ').</p>';
+  if (r.hints && r.hints.length) h += '<p>Closest guesses: ' + r.hints.map(function (id) { return esc(BYID[id].name); }).join(', ') + '.</p>';
+  h += '</div></div></div>';
+  h += '<div class="actions">';
+  if (b && guess) {
+    if (guess === r.bin) h += '<div class="banner match">Matches your guess.</div>';
+    else h += '<div class="banner diff">You guessed ' + esc(BYID[guess].name) + ' (' + esc(locText(guess)) + '). The answers point to ' + esc(b.name) + '.</div>';
+  }
+  h += '<div class="row"><button class="btn primary" id="logit">Log and next <kbd>Enter</kbd></button>';
+  (r.actions || []).forEach(function (a, i) { h += '<button class="btn" data-act="' + i + '">' + esc(a.label) + '</button>'; });
+  h += '<button class="btn ghost" id="pickfam">Pick the family myself</button>';
+  if (trail.length) h += '<button class="btn ghost" id="back">Back</button>';
+  h += '</div></div></div>';
+  el.innerHTML = h;
+}
+
+/* ---------- Actions ---------- */
+function lookup() {
+  moreOpen = false;
+  if (!$('comp').value.trim() && !$('title').value.trim()) { $('comp').focus(); return; }
+  active = true; trail = [];
+  renderFlow();
+  if (document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName)) document.activeElement.blur();
+}
+function resetInputs() {
+  moreOpen = false;
+  $('comp').value = ''; $('title').value = ''; $('weight').value = ''; $('guess').value = '';
+  active = false; trail = []; renderParsed(); renderFlow();
+}
+function logIt() {
+  if (!cur || !cur.res) return;
+  var r = cur.res, guess = $('guess').value || null;
+  var g = E.parseGsm($('weight').value, $('title').value, $('comp').value);
+  log.push({ t: Date.now(), title: $('title').value.trim(), comp: $('comp').value.trim(), gsm: g ? Math.round(g) : null, bin: r.bin, conf: r.conf, alt: r.alt || null, guess: guess, match: (guess && r.bin) ? guess === r.bin : null });
+  persist(); resetInputs(); renderLog(); $('comp').focus();
+}
+function choose(k, unsure) { moreOpen = false; trail.push({ k: cur.q.id, v: k, u: !!unsure }); renderFlow(); }
+function back() { moreOpen = false; if (trail.length) { trail.pop(); renderFlow(); } }
+function applyAction(a) {
+  moreOpen = false;
+  if (a.reset) trail = [];
+  Object.keys(a.set).forEach(function (k) { trail.push({ k: k, v: a.set[k] }); });
+  renderFlow();
+}
+
+/* ---------- Session log ---------- */
+function entryText(e) { return [e.comp, e.title, e.gsm ? e.gsm + ' gsm' : ''].filter(Boolean).join(' / ') || '(no text)'; }
+function renderLog() {
+  $('log-title').textContent = 'This session (' + log.length + ')';
+  var el = $('log');
+  if (!log.length) { el.innerHTML = '<div class="empty">Logged swatches show up here. The pick list groups them by box in shelf order, so you can walk the shelves once.</div>'; return; }
+  var h = '';
+  if (logView === 'pick') {
+    var groups = {};
+    log.forEach(function (e, i) { var key = e.bin || 'hold'; (groups[key] = groups[key] || []).push({ e: e, i: i }); });
+    var keys = Object.keys(groups).sort(function (a, b) { return (a === 'hold' ? 999 : BYID[a].slot) - (b === 'hold' ? 999 : BYID[b].slot); });
+    keys.forEach(function (k) {
+      var hold = k === 'hold';
+      h += '<div class="group"><h3><span>' + (hold ? 'Hold tray' : esc(BYID[k].name)) + '</span>' + (hold ? '' : '<span class="loc">' + esc(locText(k)) + '</span>') + '<span class="count">' + groups[k].length + '</span></h3><ul class="items">';
+      groups[k].forEach(function (x) {
+        h += '<li><span class="txt">' + esc(entryText(x.e)) + '</span>' + (x.e.conf === 'check' ? '<span class="flag check">check</span>' : '') + '<button class="x" data-del="' + x.i + '" aria-label="Remove this entry">×</button></li>';
+      });
+      h += '</ul></div>';
+    });
+  } else {
+    h += '<ul class="items">';
+    log.forEach(function (e, i) {
+      var name = e.bin ? BYID[e.bin].name : 'Hold tray';
+      h += '<li><span class="txt">' + esc(entryText(e)) + '<br><strong>' + esc(name) + '</strong>' + (e.bin ? ' · ' + esc(locText(e.bin)) : '') + '</span>' + (e.conf === 'check' ? '<span class="flag check">check</span>' : '') + (e.match === false ? '<span class="flag hold">guess differed</span>' : '') + '<button class="x" data-del="' + i + '" aria-label="Remove this entry">×</button></li>';
+    });
+    h += '</ul>';
+  }
+  el.innerHTML = h;
+}
+function pickText() {
+  var groups = {};
+  log.forEach(function (e) { var key = e.bin || 'hold'; (groups[key] = groups[key] || []).push(e); });
+  var keys = Object.keys(groups).sort(function (a, b) { return (a === 'hold' ? 999 : BYID[a].slot) - (b === 'hold' ? 999 : BYID[b].slot); });
+  return keys.map(function (k) {
+    var head = k === 'hold' ? 'HOLD TRAY' : BYID[k].name + ' (' + locText(k) + ')';
+    return head + ' x' + groups[k].length + '\n' + groups[k].map(function (e) { return '  - ' + entryText(e); }).join('\n');
+  }).join('\n\n');
+}
+
+/* ---------- Boxes, database, codes ---------- */
+function renderBoxes() {
+  var q = $('box-search').value.trim().toLowerCase();
+  var bySlot = {};
+  BOXES.forEach(function (b) { bySlot[b.slot] = b; });
+  var h = '';
+  for (var u = 0; u < 5; u++) {
+    h += '<div class="unit"><h3>Unit ' + (u + 1) + '</h3><div class="slots">';
+    for (var s = u * 10; s < u * 10 + 10; s++) {
+      var b = bySlot[s], l = E.loc(s);
+      if (!b) { h += '<div class="slot spare"><span class="n">R' + l.row + ' ' + l.side[0] + '</span><span class="nm">Spare</span></div>'; continue; }
+      var hit = !q || (b.name + ' ' + b.fits).toLowerCase().indexOf(q) >= 0;
+      h += '<div class="slot ' + b.zone + (hit ? '' : ' dim') + '"><span class="n">R' + l.row + ' ' + l.side[0] + ' <span class="tag">' + esc(b.tag) + '</span></span><span class="nm">' + esc(b.name) + '</span><span class="ft">' + esc(b.fits) + '</span></div>';
+    }
+    h += '</div></div>';
+  }
+  $('units').innerHTML = h;
+}
+function renderDb() {
+  var q = $('db-search').value.trim().toLowerCase();
+  var h = '';
+  DB.forEach(function (r) {
+    var hay = (r[0] + ' ' + r[1].map(function (id) { return BYID[id].name; }).join(' ')).toLowerCase();
+    if (q && hay.indexOf(q) < 0) return;
+    h += '<tr><td>' + esc(r[0]) + '</td><td>' + r[1].map(boxChip).join('') + '</td><td class="note">' + esc(r[2]) + '</td></tr>';
+  });
+  $('db-body').innerHTML = h || '<tr><td colspan="3" class="note">Nothing matches. Try the Sort tab. It handles fabrics that are not listed here.</td></tr>';
+}
+function renderCodes() {
+  var q = $('code-search').value.trim().toLowerCase();
+  var h = '';
+  E.CODES.forEach(function (r) {
+    if (q && (r[0] + ' ' + r[1] + ' ' + r[2]).toLowerCase().indexOf(q) < 0) return;
+    var amb = /ambiguous/i.test(r[2]);
+    h += '<tr><td class="code">' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td><td class="note' + (amb ? ' amb' : '') + '">' + esc(r[2]) + '</td></tr>';
+  });
+  $('code-body').innerHTML = h || '<tr><td colspan="3" class="note">No match. If the card shows a code that is not here, tell me and I will add it.</td></tr>';
+}
+
+function setView(v) {
+  view = v;
+  ['sort', 'boxes', 'db', 'codes'].forEach(function (n) {
+    $('view-' + n).hidden = n !== v;
+    $('tab-' + n).setAttribute('aria-selected', n === v ? 'true' : 'false');
+  });
+  if (v === 'boxes') renderBoxes();
+  if (v === 'db') renderDb();
+  if (v === 'codes') renderCodes();
+  if (v === 'sort') $('comp').focus();
+}
+
+/* ---------- Events ---------- */
+document.querySelectorAll('.tab').forEach(function (t) { t.addEventListener('click', function () { setView(t.getAttribute('data-view')); }); });
+$('go').addEventListener('click', lookup);
+$('clear').addEventListener('click', resetInputs);
+function inputsChanged() { renderParsed(); if (active) { active = false; trail = []; renderFlow(); } }
+$('comp').addEventListener('input', inputsChanged);
+$('title').addEventListener('input', inputsChanged);
+$('weight').addEventListener('input', inputsChanged);
+$('guess').addEventListener('change', function () { if (active) renderFlow(); });
+$('box-search').addEventListener('input', renderBoxes);
+$('db-search').addEventListener('input', renderDb);
+$('code-search').addEventListener('input', renderCodes);
+$('lv-pick').addEventListener('click', function () { logView = 'pick'; $('lv-pick').setAttribute('aria-pressed', 'true'); $('lv-order').setAttribute('aria-pressed', 'false'); renderLog(); });
+$('lv-order').addEventListener('click', function () { logView = 'order'; $('lv-order').setAttribute('aria-pressed', 'true'); $('lv-pick').setAttribute('aria-pressed', 'false'); renderLog(); });
+$('reset-log').addEventListener('click', function () {
+  if (!log.length) return;
+  var b = $('reset-log');
+  if (b.getAttribute('data-armed') === '1') { log = []; persist(); renderLog(); b.textContent = 'Clear session'; b.removeAttribute('data-armed'); return; }
+  b.setAttribute('data-armed', '1'); b.textContent = 'Click again to clear all';
+  setTimeout(function () { b.removeAttribute('data-armed'); b.textContent = 'Clear session'; }, 3000);
+});
+$('copy').addEventListener('click', function () {
+  if (!log.length) return;
+  var txt = pickText(), done = false;
+  try { navigator.clipboard.writeText(txt).then(function () { $('copy').textContent = 'Copied'; setTimeout(function () { $('copy').textContent = 'Copy pick list'; }, 1500); }, showBox); done = true; } catch (e) { done = false; }
+  if (!done) showBox();
+  function showBox() { $('copyarea').innerHTML = '<textarea class="copybox" id="copybox" readonly aria-label="Pick list text"></textarea>'; var t = $('copybox'); t.value = txt; t.focus(); t.select(); }
+});
+$('log').addEventListener('click', function (e) {
+  var d = e.target.closest('[data-del]');
+  if (d) { log.splice(parseInt(d.getAttribute('data-del'), 10), 1); persist(); renderLog(); }
+});
+$('flow').addEventListener('click', function (e) {
+  var t = e.target.closest('button'); if (!t) return;
+  if (t.hasAttribute('data-ex')) { var ex = EXAMPLES[+t.getAttribute('data-ex')]; $('title').value = ex[0]; $('comp').value = ex[1]; $('weight').value = ex[2]; renderParsed(); lookup(); return; }
+  if (t.hasAttribute('data-opt')) { choose(t.getAttribute('data-opt'), false); return; }
+  if (t.id === 'more') { moreOpen = true; renderFlow(); return; }
+  if (t.id === 'fulllist') { trail = [{ k: 'forceFam', v: true }]; renderFlow(); return; }
+  if (t.id === 'unsure') { choose(cur.q.fallback, true); return; }
+  if (t.id === 'back') { back(); return; }
+  if (t.id === 'logit') { logIt(); return; }
+  if (t.id === 'pickfam') { trail = [{ k: 'forceFam', v: true }]; renderFlow(); return; }
+  if (t.hasAttribute('data-act')) applyAction(cur.res.actions[+t.getAttribute('data-act')]);
+});
+document.addEventListener('keydown', function (e) {
+  var tag = e.target.tagName;
+  if (e.key === 'Enter' && (e.target.id === 'comp' || e.target.id === 'title' || e.target.id === 'weight')) { e.preventDefault(); lookup(); return; }
+  if (view !== 'sort') return;
+  if (e.key === 'Escape') { resetInputs(); $('comp').focus(); return; }
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+  if (!cur) return;
+  if (cur.q) {
+    if (/^[1-9]$/.test(e.key)) { var o = visOpts(cur.q)[+e.key - 1]; if (o) { e.preventDefault(); choose(o.k, false); } }
+    else if (e.key === '0' && cur.q.id !== 'fam') { e.preventDefault(); choose(cur.q.fallback, true); }
+    else if (e.key === 'Backspace') { e.preventDefault(); back(); }
+  } else if (cur.res && e.key === 'Enter') { e.preventDefault(); logIt(); }
+});
+
+renderParsed(); renderFlow(); renderLog();
+})();
+</script>
+</body>
+</html>
