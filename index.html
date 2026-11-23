@@ -295,17 +295,14 @@ var BOXES = [
   b('lwlinen', 'Lightweight Linen', 'Soft', '100% linen at light weight.'),
   b('linenblend', 'Linens (blends)', 'Soft', 'Linen blends at any weight, and light fabrics with 50% or more linen that are not pure linen.'),
   b('mhlinen', 'Mid-Heavyweight Linen', 'Hard', 'Linen (50% or more) at mid to heavy weight.'),
-  b('georgette', 'Georgette / Chiffon', 'Soft', 'Georgette and chiffon, silk or viscose.'),
   b('lwsatin', 'Lightweight Satins', 'Soft', 'Light satins and charmeuse, including light satin jacquard.'),
-  b('crepe', 'Drapey Synthetics: Matte Crepe', 'Soft', 'Soft, fluid, matte polyester or nylon such as crepe.'),
-  b('crisp', 'Drapey Synthetics: Crisp', 'Soft', 'Crisp or papery synthetics such as poplin, taffeta, ripstop, technical.'),
+  b('crisp', 'Drapey Synthetics', 'Soft', 'Soft matte synthetics such as crepe, and crisp or papery synthetics such as poplin, taffeta, ripstop, technical.'),
   b('challis', 'Viscose / Tencel Challis & Twill', 'Soft', 'Matte viscose, rayon, Tencel, modal and cupro. Challis and soft twills.'),
   b('clipdot', 'Clip Dot / Lurex / Lame / Burnout', 'Soft', 'Clip dot, lurex, lame, burnout, devore, fil coupe.'),
   b('mhsatin', 'Mid-Heavy Satins + Jacquard', 'Soft', 'Mid to heavy satins, duchess, satin jacquard.'),
   b('cdc', 'Silk / Viscose CDC Twills', 'Soft', 'Silk or viscose crepe de chine and silky twills.'),
-  b('organza', 'Organza / Dupioni', 'Soft', 'Organza, dupioni, shantung, silk taffeta.'),
-  b('novtex', 'Novelty: Textured / Dobby / Jacquard', 'Soft', 'Light novelty with texture. Dobby, non-satin jacquard, crinkle, fil coupe.'),
-  b('novemb', 'Novelty: Embroidered / Embellished', 'Soft', 'Light novelty with embroidery, beading or sequins.'),
+  b('organza', 'Organza / Dupioni / Georgette / Chiffon', 'Soft', 'Sheer wovens: organza, dupioni, shantung, silk taffeta, georgette and chiffon.'),
+  b('novemb', 'Novelty: Embroidered / Embellished / Textured', 'Soft', 'Light novelty with embroidery, beading or sequins, and light woven texture such as dobby, non-satin jacquard, crinkle.'),
   b('novspec', 'Novelty: Specialty', 'Soft', 'Light novelty with special finishes. Coated, foil, bonded, printed.'),
   b('mhnov', 'Mid-Heavy Novelty', 'Soft', 'Mid to heavy novelty. Boucle, tweed, cloque, matelasse, brocade.'),
   b('plaids', 'Plaids', 'Hard', 'Plaids, checks, gingham, tartan, windowpane, houndstooth.'),
@@ -314,22 +311,34 @@ var BOXES = [
   b('tail1', 'Tailoring 1 (light)', 'Hard', 'Light tailoring. Tropical and summer suiting.'),
   b('tail2', 'Tailoring 2 (mid)', 'Hard', 'Mid tailoring. Year-round suiting.'),
   b('tail3', 'Tailoring 3 (heavy)', 'Hard', 'Heavy tailoring. Winter suiting and flannel.'),
-  b('hvcotton', 'Heavy Cotton Outerwear', 'Hard', 'Canvas, duck, chore cloth, waxed cotton.'),
-  b('coating', 'Coating', 'Hard', 'Melton, boiled wool, felt, double-face coating.'),
+  b('hvcotton', 'Heavy Cotton Outerwear', 'Hard', 'Canvas, duck, chore cloth, waxed cotton. Three boxes: use the first one that is not full.'),
   b('cordvelvet', 'Corduroy / Velvet', 'Hard', 'Corduroy, velvet, velveteen.'),
-  b('piles', 'Piles', 'Hard', 'Terry, fleece, chenille, faux fur, teddy, sherpa.'),
+  b('piles', 'Piles', 'Hard', 'Terry, fleece, chenille, teddy, sherpa.'),
   b('shearling', 'Shearling', 'Hard', 'Shearling and faux shearling.'),
-  b('leather', 'Leather', 'Hard', 'Real leather with a smooth finish.'),
-  b('faux', 'Faux Leather + Faux Suede', 'Hard', 'Man-made leather and suede-look fabrics.'),
+  b('fur', 'Faux Fur', 'Hard', 'Faux fur and long shaggy fur-look fabrics.'),
+  b('coating', 'Coating', 'Hard', 'Melton, boiled wool, felt, double-face coating. Three boxes: use the first one that is not full.'),
+  b('leather', 'Leather', 'Hard', 'Real leather with a smooth finish. Two boxes: use the first one that is not full.'),
+  b('faux', 'Faux Leather + Faux Suede', 'Hard', 'Man-made leather and suede-look fabrics. Two boxes: use the first one that is not full.'),
   b('suede', 'Suede', 'Hard', 'Real suede and nubuck.'),
   b('recycled', 'Recycled Leather', 'Hard', 'Recycled or bonded leather.')
 ];
-BOXES.forEach(function (x, i) {
-  x.slot = i < 33 ? i : i + 1; // slot 33 is a spare
-  x.zone = x.slot < 20 ? 'ss' : (x.slot < 34 ? 'yr' : 'fw');
+/* Slot map, reading order: top to bottom within a unit, left then right in each row. 10 slots per unit. */
+var SLOTMAP = { eyelet1: [0], eyelet2: [1], lacetrim: [2], stretchlace: [3], lace: [4], corded: [5], novlace: [6], plainshirt: [7], textcotton: [8], textblend: [9],
+  puckered: [10], lwlinen: [11], linenblend: [12], mhlinen: [13], lwsatin: [15], crisp: [17], challis: [18], clipdot: [19],
+  mhsatin: [20], cdc: [21], organza: [22], novemb: [24], novspec: [25], mhnov: [26], plaids: [27], stripes: [28], bottoms: [29],
+  tail1: [30], tail2: [31], tail3: [32], hvcotton: [33, 34, 35], cordvelvet: [36], piles: [37], shearling: [38], fur: [39],
+  coating: [40, 41, 42], leather: [43, 44], faux: [45, 46], suede: [47], recycled: [48] };
+var SPARE = [14, 16, 23, 49];
+BOXES.forEach(function (x) {
+  x.slots = SLOTMAP[x.id]; x.n = x.slots.length; x.slot = x.slots[0];
+  x.zone = x.slot < 20 ? 'ss' : (x.slot < 33 ? 'yr' : 'fw');
 });
 var BYID = {};
 BOXES.forEach(function (x) { BYID[x.id] = x; });
+/* Retired boxes that were merged. Old ids still resolve so saved logs keep working. */
+var ALIAS = { georgette: 'organza', crepe: 'crisp', novtex: 'novemb' };
+Object.keys(ALIAS).forEach(function (k) { BYID[k] = BYID[ALIAS[k]]; });
+function A(id) { return id ? (ALIAS[id] || id) : id; }
 var ZONES = { ss: 'Spring / Summer', yr: 'Year-round', fw: 'Fall / Winter' };
 var TOTAL_SLOTS = 50;
 function loc(slot) {
@@ -337,6 +346,12 @@ function loc(slot) {
   var row = Math.floor((slot % 10) / 2) + 1;
   var side = slot % 2 === 0 ? 'Left' : 'Right';
   return { unit: unit, row: row, side: side, text: 'Unit ' + unit + ' · Row ' + row + ' · ' + side };
+}
+function locText(id) {
+  var bx = BYID[id], units = {}, order = [];
+  if (bx.slots.length === 1) return loc(bx.slots[0]).text;
+  bx.slots.forEach(function (s) { var l = loc(s); if (!units[l.unit]) { units[l.unit] = []; order.push(l.unit); } units[l.unit].push('Row ' + l.row + ' ' + l.side); });
+  return order.map(function (u) { return 'Unit ' + u + ' · ' + units[u].join(', '); }).join(' | ');
 }
 
 /* ---------- Composition parsing ---------- */
@@ -519,6 +534,7 @@ function autoW(S, l, m) {
 function bast(C) { return (C.pct.linen || 0) + (C.pct.hemp || 0) + (C.pct.ramie || 0); }
 function D(S, bin, o) {
   o = o || {};
+  bin = A(bin); o.alt = A(o.alt); if (o.alt === bin) o.alt = null;
   var conf = o.conf || 'sure';
   var notes = (S.notes || []).slice();
   (S.C.ambig || []).forEach(function (x) { notes.push('Code ' + x.code + ' can mean ' + x.note + '. Read as ' + FIBER_NAMES[x.as] + '.'); });
@@ -649,15 +665,18 @@ H.pile = function (S) {
   if (/sherpa/.test(T)) return D(S, 'piles', { alt: 'shearling', conf: 'check', why: 'Sherpa is a pile, but it can read as shearling.' });
   if (/corduroy|\bcord\b|needlecord|velvet|velveteen/.test(T)) return D(S, 'cordvelvet', { why: 'Corduroy and velvet share a box.' });
   if (/velour/.test(T)) return D(S, 'cordvelvet', { alt: 'piles', conf: 'check', why: 'Velour sits between velvet and pile.' });
-  if (/\bfur\b|terry|fleece|chenille|plush|teddy|minky|\bpile\b/.test(T)) return D(S, 'piles', { why: 'Long, fuzzy or looped piles.' });
+  if (/faux fur|fake fur|\bfur\b|shaggy/.test(T)) return D(S, 'fur', { why: 'Faux fur has its own box.' });
+  if (/terry|fleece|chenille|plush|teddy|minky|\bpile\b/.test(T)) return D(S, 'piles', { why: 'Looped or fuzzy piles.' });
   var k = a.pk;
   if (!k) return Q('pk', 'What kind of pile?', [
     opt('cv', 'Short, smooth or ribbed', 'Corduroy, velvet, velveteen'),
-    opt('long', 'Long, fuzzy or looped', 'Fur, terry, fleece, chenille'),
+    opt('long', 'Looped or fuzzy', 'Terry, fleece, chenille, teddy'),
+    opt('fur', 'Long and shaggy', 'Faux fur'),
     opt('shear', 'Shearling look', 'Suede-look face with wool-look back')], 'long');
   if (k === 'cv') return D(S, 'cordvelvet', { why: 'Short pile goes with corduroy and velvet.' });
   if (k === 'shear') return D(S, 'shearling', { why: 'Shearling look.' });
-  return D(S, 'piles', { why: 'Long or looped pile.' });
+  if (k === 'fur') return D(S, 'fur', { why: 'Faux fur has its own box.' });
+  return D(S, 'piles', { why: 'Looped or fuzzy pile.' });
 };
 
 H.lace = function (S) {
@@ -723,7 +742,7 @@ H.novelty = function (S) {
     opt('emb', 'Embroidered or embellished', 'Embroidery, beads, sequins'),
     opt('spec', 'Special finish', 'Coated, foil, bonded, printed')], 'tex');
   var map = { tex: 'novtex', emb: 'novemb', spec: 'novspec' };
-  var why = { tex: 'Light woven texture, dobby or jacquard.', emb: 'Embroidered, beaded or sequined.', spec: 'Coated, foil, bonded or printed.' };
+  var why = { tex: 'Light woven texture, dobby or jacquard. It shares a box with embroidered novelty.', emb: 'Embroidered, beaded or sequined.', spec: 'Coated, foil, bonded or printed.' };
   var alt = (k === 'emb' && /sequin|paillette/.test(S.T)) ? 'novlace' : null;
   return D(S, map[k], { alt: alt, conf: alt ? 'check' : 'sure', why: why[k] });
 };
@@ -787,21 +806,15 @@ H.satin = function (S) {
 H.cdc = function (S) {
   var p = S.C.pct, g = fiberGroup(S.C);
   var off = S.C.known && !S.C.noPct && g !== 'silk' && g !== 'cell';
-  return D(S, 'cdc', { alt: off ? 'crepe' : null, conf: off ? 'check' : 'sure', why: off ? 'Box is for silk or viscose. A polyester crepe de chine may belong in Matte Crepe.' : 'Crepe de chine and silky twills.' });
+  return D(S, 'cdc', { alt: off ? 'crepe' : null, conf: off ? 'check' : 'sure', why: off ? 'Box is for silk or viscose. A polyester crepe de chine may belong in Drapey Synthetics.' : 'Crepe de chine and silky twills.' });
 };
 
 H.sheer = function (S) {
-  var T = S.T, C = S.C, a = S.a;
-  var flowy = /georgette|chiffon/.test(T), crisp = /organza|dupioni|dupion|shantung|taffeta/.test(T);
-  var kind = (flowy && crisp) ? a.sk : flowy ? 'flowy' : crisp ? 'crisp' : a.sk;
-  if (!kind) return Q('sk', 'Which kind of sheer?', [
-    opt('flowy', 'Soft and flowy', 'Chiffon, georgette'), opt('crisp', 'Crisp and stiff', 'Organza, dupioni, taffeta')], 'flowy');
+  var T = S.T, C = S.C;
   var syn = ((C.pct.polyester || 0) + (C.pct.nylon || 0)) >= 50;
-  if (kind === 'flowy') return D(S, 'georgette', {
-    alt: syn ? 'crepe' : null, conf: syn ? 'check' : 'sure',
-    why: syn ? 'The box label says silk or viscose. Polyester georgette may belong in Matte Crepe.' : 'Georgette and chiffon.' });
   if (/taffeta/.test(T) && syn) return D(S, 'crisp', { alt: 'organza', conf: 'check', why: 'Synthetic taffeta is a crisp synthetic. Silk taffeta goes with Organza.' });
-  return D(S, 'organza', { why: 'Organza, dupioni, shantung and silk taffeta.' });
+  if (/georgette|chiffon/.test(T) && syn) return D(S, 'organza', { alt: 'crisp', conf: 'check', why: 'Georgette and chiffon share the sheer box with organza. Polyester georgette can also read as a Drapey Synthetic.' });
+  return D(S, 'organza', { why: 'Organza, dupioni, shantung, silk taffeta, georgette and chiffon share one box.' });
 };
 
 H.drapey = function (S) {
@@ -823,12 +836,11 @@ H.drapey = function (S) {
                           : D(S, 'challis', { why: 'Matte viscose, Tencel and modal.' });
   }
   var sh = a.sh || (S.gsm >= 220 ? 'heavy' : null) || (/crepe/.test(T) ? 'soft' : /poplin|taffeta|ripstop|technical|nylon|paper/.test(T) ? 'crisp' : null);
-  if (!sh) return Q('sh', 'How does it handle?', [
-    opt('soft', 'Soft, fluid, matte', 'Crepe-like'),
-    opt('crisp', 'Crisp or papery', 'Poplin, taffeta, ripstop, technical'),
-    opt('heavy', 'Heavier and structured', 'Suiting-like')], 'soft');
+  if (!sh) return Q('sh', 'How heavy is it?', [
+    opt('lt', 'Light to mid', 'Crepe, poplin, taffeta, ripstop, technical'),
+    opt('heavy', 'Heavier and structured', 'Suiting-like')], 'lt');
   if (sh === 'heavy') return H.bottoms(S);
-  return sh === 'crisp' ? D(S, 'crisp', { why: 'Crisp synthetics.' }) : D(S, 'crepe', { why: 'Soft matte synthetics.' });
+  return D(S, 'crisp', { why: 'Soft matte and crisp synthetics share the Drapey Synthetics box.' });
 };
 
 H.shirting = function (S) {
@@ -1019,7 +1031,7 @@ function makeState(title, compRaw, trail, weightRaw) {
 function holdGuess(S) {
   var g = fiberGroup(S.C), out = [];
   if (g === 'cot') out = ['plainshirt', 'bottoms'];
-  else if (g === 'syn') out = ['crepe', 'crisp'];
+  else if (g === 'syn') out = ['crisp', 'organza'];
   else if (g === 'cell') out = ['challis', 'cdc'];
   else if (g === 'silk') out = ['cdc', 'lwsatin'];
   else if (g === 'wool') out = ['tail2', 'coating'];
@@ -1046,7 +1058,7 @@ function route(title, compRaw, trail, weightRaw) {
   return r;
 }
 
-var api = { FIBER_NAMES: FIBER_NAMES, CODES: CODES, parseGsm: parseGsm, BOXES: BOXES, BYID: BYID, ZONES: ZONES, TOTAL_SLOTS: TOTAL_SLOTS, loc: loc, parseComp: parseComp, route: route, FAMS: FAMS };
+var api = { FIBER_NAMES: FIBER_NAMES, CODES: CODES, parseGsm: parseGsm, BOXES: BOXES, BYID: BYID, ZONES: ZONES, TOTAL_SLOTS: TOTAL_SLOTS, loc: loc, locText: locText, SPARE: SPARE, ALIAS: ALIAS, parseComp: parseComp, route: route, FAMS: FAMS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.SwatchEngine = api;
 })(typeof window !== 'undefined' ? window : this);
@@ -1076,19 +1088,19 @@ var DB = [
   ['Linen, 100%', ['lwlinen', 'mhlinen'], 'Weight'],
   ['Linen blends (cotton-linen, viscose-linen)', ['linenblend', 'mhlinen'], 'Linen % and weight'],
   ['Hemp and hemp blends', ['mhlinen', 'linenblend'], 'Counted with linen. Heavy twills may go to Bottoms'],
-  ['Georgette, chiffon', ['georgette'], 'Polyester may go to Matte Crepe'],
+  ['Georgette, chiffon', ['organza'], 'Polyester may go to Drapey Synthetics'],
   ['Organza, dupioni, shantung, silk taffeta', ['organza'], ''],
   ['Taffeta, polyester', ['crisp'], ''],
   ['Charmeuse, satin (light)', ['lwsatin'], ''],
   ['Satin (mid-heavy), duchess, mikado, eco matte satin (heavier)', ['mhsatin'], 'Weight'],
   ['Satin jacquard', ['lwsatin', 'mhsatin'], 'Weight'],
   ['Crepe de chine, habotai, silk twill, viscose twill', ['cdc'], ''],
-  ['Polyester crepe, moss crepe', ['crepe'], ''],
+  ['Polyester crepe, moss crepe', ['crisp'], ''],
   ['Poly or nylon poplin, ripstop (light), technical', ['crisp'], ''],
   ['Challis, Tencel or lyocell twill, modal, cupro', ['challis'], 'Silky ones go to CDC Twills'],
   ['Clip dot, cut dot, swiss dot, fil coupe', ['clipdot'], ''],
   ['Lurex, metallic, lame, burnout, devore', ['clipdot'], ''],
-  ['Jacquard (not satin), dobby novelty', ['novtex', 'mhnov'], 'Weight'],
+  ['Jacquard (not satin), dobby novelty', ['novemb', 'mhnov'], 'Weight'],
   ['Foil, coated, bonded, laminated, printed novelty', ['novspec'], ''],
   ['Boucle, tweed, brocade, damask, tapestry', ['mhnov'], ''],
   ['Plaid, check, gingham, tartan, windowpane, houndstooth', ['plaids'], 'Or by material'],
@@ -1099,7 +1111,8 @@ var DB = [
   ['Canvas, duck, chore cloth, waxed cotton', ['hvcotton', 'bottoms'], 'Jacket or pants'],
   ['Melton, boiled wool, felt, double-face, coating', ['coating'], ''],
   ['Corduroy, velvet, velveteen', ['cordvelvet'], ''],
-  ['Terry, fleece, chenille, faux fur, teddy, sherpa', ['piles'], 'Sherpa can read as Shearling'],
+  ['Terry, fleece, chenille, teddy, sherpa', ['piles'], 'Sherpa can read as Shearling'],
+  ['Faux fur', ['fur'], ''],
   ['Shearling, faux shearling', ['shearling'], ''],
   ['Leather, lambskin, calfskin, nappa', ['leather'], 'Smooth finish'],
   ['Suede, nubuck (real)', ['suede'], ''],
@@ -1115,7 +1128,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function
 try { var saved = JSON.parse(localStorage.getItem('swatch-log') || '[]'); if (Array.isArray(saved)) log = saved; } catch (e) { log = []; }
 function persist() { try { localStorage.setItem('swatch-log', JSON.stringify(log)); } catch (e) { /* storage unavailable */ } }
 function boxChip(id) { var b = BYID[id]; return '<span class="bx ' + b.zone + '">' + esc(b.name) + '</span>'; }
-function locText(id) { return E.loc(BYID[id].slot).text; }
+function locText(id) { return E.locText(id); }
 
 (function buildGuess() {
   var h = '<option value="">No guess</option>';
@@ -1220,12 +1233,13 @@ function renderResult(el, r) {
   if (b) h += '<span class="pill neutral">' + esc(ZONES[b.zone]) + '</span><span class="pill neutral">' + esc(b.tag) + ' wovens</span>';
   h += '</div><div class="mid"><div class="kicker">' + (b ? 'Put it in' : 'No box yet') + '</div><div class="box-name">' + esc(b ? b.name : 'Set it aside') + '</div></div></div>';
   h += '<div class="lower"><div class="stack">';
-  h += '<div class="line1">' + esc(b ? E.loc(b.slot).text : 'Hold tray') + '</div>';
+  h += '<div class="line1">' + esc(b ? E.locText(b.id) : 'Hold tray') + '</div>';
   if (comp) h += '<div class="line">' + esc(comp) + '</div>';
   if (title) h += '<div class="line dim">' + esc(title) + '</div>';
   if (g) h += '<div class="line dim">' + Math.round(g) + ' gsm</div>';
   h += '</div><div class="notes"><div class="lbl">Notes:</div><div class="txt">';
   if (r.why) h += '<p>' + esc(r.why) + '</p>';
+  if (b && b.n > 1) h += '<p>' + b.n + ' boxes for this category. Use the first one that is not full.</p>';
   if (r.alt) h += '<p>Could also be ' + esc(BYID[r.alt].name) + ' (' + esc(locText(r.alt)) + ').</p>';
   if (r.hints && r.hints.length) h += '<p>Closest guesses: ' + r.hints.map(function (id) { return esc(BYID[id].name); }).join(', ') + '.</p>';
   h += '</div></div></div>';
@@ -1314,15 +1328,15 @@ function pickText() {
 function renderBoxes() {
   var q = $('box-search').value.trim().toLowerCase();
   var bySlot = {};
-  BOXES.forEach(function (b) { bySlot[b.slot] = b; });
+  BOXES.forEach(function (b) { b.slots.forEach(function (s, i) { bySlot[s] = { b: b, i: i }; }); });
   var h = '';
   for (var u = 0; u < 5; u++) {
     h += '<div class="unit"><h3>Unit ' + (u + 1) + '</h3><div class="slots">';
     for (var s = u * 10; s < u * 10 + 10; s++) {
-      var b = bySlot[s], l = E.loc(s);
+      var ent = bySlot[s], b = ent && ent.b, l = E.loc(s);
       if (!b) { h += '<div class="slot spare"><span class="n">R' + l.row + ' ' + l.side[0] + '</span><span class="nm">Spare</span></div>'; continue; }
       var hit = !q || (b.name + ' ' + b.fits).toLowerCase().indexOf(q) >= 0;
-      h += '<div class="slot ' + b.zone + (hit ? '' : ' dim') + '"><span class="n">R' + l.row + ' ' + l.side[0] + ' <span class="tag">' + esc(b.tag) + '</span></span><span class="nm">' + esc(b.name) + '</span><span class="ft">' + esc(b.fits) + '</span></div>';
+      h += '<div class="slot ' + b.zone + (hit ? '' : ' dim') + '"><span class="n">R' + l.row + ' ' + l.side[0] + ' <span class="tag">' + esc(b.tag) + '</span></span><span class="nm">' + esc(b.name) + (b.n > 1 ? ' (' + (ent.i + 1) + ' of ' + b.n + ')' : '') + '</span><span class="ft">' + esc(b.fits) + '</span></div>';
     }
     h += '</div></div>';
   }
