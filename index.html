@@ -322,17 +322,19 @@ var BOXES = [
   b('suede', 'Suede', 'Hard', 'Real suede and nubuck.'),
   b('recycled', 'Recycled Leather', 'Hard', 'Recycled or bonded leather.')
 ];
-/* Slot map, reading order: top to bottom within a unit, left then right in each row. 10 slots per unit. */
-var SLOTMAP = { eyelet1: [0], eyelet2: [1], lacetrim: [2], stretchlace: [3], lace: [4], corded: [5], novlace: [6], plainshirt: [7], textcotton: [8], textblend: [9],
-  puckered: [10], lwlinen: [11], linenblend: [12], mhlinen: [13], lwsatin: [15], crisp: [17], challis: [18], clipdot: [19],
-  mhsatin: [20], cdc: [21], organza: [22], novemb: [24], novspec: [25], mhnov: [26], plaids: [27], stripes: [28], bottoms: [29],
-  tail1: [30], tail2: [31], tail3: [32], hvcotton: [33, 34, 35], cordvelvet: [36], piles: [37], shearling: [38], fur: [39],
-  coating: [40, 41, 42], leather: [43, 44], faux: [45, 46], suede: [47], recycled: [48] };
-var SPARE = [14, 16, 23, 49];
+/* Slots fill in shelf order with no gaps, so any spare slots sit at the very end of unit 5.
+   Reading order: top to bottom within a unit, left then right in each row. 10 slots per unit. */
+var COUNTS = { hvcotton: 3, coating: 3, leather: 2, faux: 2 };
+var TOTAL_SLOTS = 50;
+var nextSlot = 0, zoneNow = 'ss';
 BOXES.forEach(function (x) {
-  x.slots = SLOTMAP[x.id]; x.n = x.slots.length; x.slot = x.slots[0];
-  x.zone = x.slot < 20 ? 'ss' : (x.slot < 33 ? 'yr' : 'fw');
+  if (x.id === 'mhsatin') zoneNow = 'yr';
+  if (x.id === 'hvcotton') zoneNow = 'fw';
+  x.n = COUNTS[x.id] || 1; x.slots = [];
+  for (var i = 0; i < x.n; i++) x.slots.push(nextSlot++);
+  x.slot = x.slots[0]; x.zone = zoneNow;
 });
+var SPARE = []; for (var sp = nextSlot; sp < TOTAL_SLOTS; sp++) SPARE.push(sp);
 var BYID = {};
 BOXES.forEach(function (x) { BYID[x.id] = x; });
 /* Retired boxes that were merged. Old ids still resolve so saved logs keep working. */
@@ -340,7 +342,6 @@ var ALIAS = { georgette: 'organza', crepe: 'crisp', novtex: 'novemb' };
 Object.keys(ALIAS).forEach(function (k) { BYID[k] = BYID[ALIAS[k]]; });
 function A(id) { return id ? (ALIAS[id] || id) : id; }
 var ZONES = { ss: 'Spring / Summer', yr: 'Year-round', fw: 'Fall / Winter' };
-var TOTAL_SLOTS = 50;
 function loc(slot) {
   var unit = Math.floor(slot / 10) + 1;
   var row = Math.floor((slot % 10) / 2) + 1;
